@@ -27,6 +27,7 @@ export interface BuildingDetail {
     totalSqFeet: string
     totalSqMeter: string
     facingDirection: string
+    buildingType: string // புதிதாக சேர்க்கப்பட்டது
   } | null
   doorNumbers: { id: string; number: string }[]
   taxAssessmentNumbers: { id: string; number: string }[]
@@ -64,6 +65,7 @@ export function BuildingForm({ onAddBuilding, onCancel, initialData, isEdit = fa
       totalSqFeet: "",
       totalSqMeter: "",
       facingDirection: "தெற்கு",
+      buildingType: "சிமெண்ட் சீட்", // புதிதாக சேர்க்கப்பட்டது
     },
   )
   const [doorNumbers, setDoorNumbers] = useState<{ id: string; number: string }[]>(
@@ -205,7 +207,7 @@ export function BuildingForm({ onAddBuilding, onCancel, initialData, isEdit = fa
 
     // கழிப்பறை விவரங்கள்
     if (hasToilet && toiletDetails) {
-      description += `\nபின்னும், மேற்படி இடத்தில் கிழமேல் ${toiletDetails.length} அடி தென்வடல் ${toiletDetails.width} அடி ஆக ${toiletDetails.totalSqFeet} சதுரடிக்கு ${toiletDetails.totalSqMeter} சதுரமீட்டர் அளவில் ${toiletDetails.facingDirection}ப் பார்த்து ${buildingAge} வருடங்களுக்கு முன்பு மேற்கூரை சிமெண்ட் சீட் போட்டு கட்டப்பட்டுள்ள கழிப்பறை சகிதம் பூராவும்.`
+      description += `\nபின்னும், மேற்படி இடத்தில் கிழமேல் ${toiletDetails.length} அடி தென்வடல் ${toiletDetails.width} அடி ஆக ${toiletDetails.totalSqFeet} சதுரடிக்கு ${toiletDetails.totalSqMeter} சதுரமீட்டர் அளவில் ${toiletDetails.facingDirection}ப் பார்த்து ${buildingAge} வருடங்களுக்கு முன்பு மேற்கூரை ${toiletDetails.buildingType} போட்டு கட்டப்பட்டுள்ள கழிப்பறை சகிதம் பூராவும்.`
     }
 
     // வீட்டு விவரங்கள் சுருக்கம்
@@ -300,11 +302,16 @@ export function BuildingForm({ onAddBuilding, onCancel, initialData, isEdit = fa
   // கழிப்பறை பரப்பளவு கணக்கீடு
   const calculateToiletArea = () => {
     if (toiletDetails.length && toiletDetails.width) {
-      const sqft = Number.parseFloat(toiletDetails.length) * Number.parseFloat(toiletDetails.width)
-      const sqm = sqft * 0.092903
+      const length = Number.parseFloat(toiletDetails.length.replace(/,/g, ""))
+      const width = Number.parseFloat(toiletDetails.width.replace(/,/g, ""))
 
-      updateToiletDetails("totalSqFeet", sqft.toString())
-      updateToiletDetails("totalSqMeter", sqm.toFixed(2))
+      if (!isNaN(length) && !isNaN(width)) {
+        const sqft = length * width
+        const sqm = sqft * 0.092903
+
+        updateToiletDetails("totalSqFeet", sqft.toFixed(2))
+        updateToiletDetails("totalSqMeter", sqm.toFixed(2))
+      }
     }
   }
 
@@ -620,7 +627,7 @@ export function BuildingForm({ onAddBuilding, onCancel, initialData, isEdit = fa
           </div>
 
           {hasToilet && (
-            <div className="bg-cyan-50 p-4 rounded-lg border border-cyan-200">
+            <div className="mb-4 bg-cyan-50 p-4 rounded-lg border border-cyan-200">
               <h5 className="font-medium mb-3 text-cyan-700">கழிப்பறை விவரங்கள்</h5>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -632,8 +639,8 @@ export function BuildingForm({ onAddBuilding, onCancel, initialData, isEdit = fa
                     value={toiletDetails.length}
                     onChange={(e) => {
                       updateToiletDetails("length", e.target.value)
-                      setTimeout(calculateToiletArea, 100)
                     }}
+                    onBlur={calculateToiletArea}
                     placeholder="நீளம்"
                     className="bg-white border-cyan-200 focus:border-cyan-400"
                   />
@@ -647,8 +654,8 @@ export function BuildingForm({ onAddBuilding, onCancel, initialData, isEdit = fa
                     value={toiletDetails.width}
                     onChange={(e) => {
                       updateToiletDetails("width", e.target.value)
-                      setTimeout(calculateToiletArea, 100)
                     }}
+                    onBlur={calculateToiletArea}
                     placeholder="அகலம்"
                     className="bg-white border-cyan-200 focus:border-cyan-400"
                   />
@@ -660,7 +667,7 @@ export function BuildingForm({ onAddBuilding, onCancel, initialData, isEdit = fa
                   <Input
                     id="toilet-sqft"
                     value={toiletDetails.totalSqFeet}
-                    readOnly
+                    onChange={(e) => updateToiletDetails("totalSqFeet", e.target.value)}
                     placeholder="மொத்த சதுரடி"
                     className="bg-slate-50 border-cyan-200"
                   />
@@ -672,7 +679,7 @@ export function BuildingForm({ onAddBuilding, onCancel, initialData, isEdit = fa
                   <Input
                     id="toilet-sqm"
                     value={toiletDetails.totalSqMeter}
-                    readOnly
+                    onChange={(e) => updateToiletDetails("totalSqMeter", e.target.value)}
                     placeholder="மொத்த சதுரமீட்டர்"
                     className="bg-slate-50 border-cyan-200"
                   />
@@ -693,6 +700,26 @@ export function BuildingForm({ onAddBuilding, onCancel, initialData, isEdit = fa
                       <SelectItem value="மேற்கு">மேற்கு</SelectItem>
                       <SelectItem value="வடக்கு">வடக்கு</SelectItem>
                       <SelectItem value="தெற்கு">தெற்கு</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="toilet-building-type" className="text-cyan-800 text-sm">
+                    கட்டிட வகை
+                  </Label>
+                  <Select
+                    value={toiletDetails.buildingType}
+                    onValueChange={(value) => updateToiletDetails("buildingType", value)}
+                  >
+                    <SelectTrigger className="bg-white border-cyan-200 focus:border-cyan-400">
+                      <SelectValue placeholder="கட்டிட வகையை தேர்ந்தெடுக்கவும்" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="தார்சு வீடு">தார்சு வீடு</SelectItem>
+                      <SelectItem value="ஓட்டு வீடு">ஓட்டு வீடு</SelectItem>
+                      <SelectItem value="சிமெண்ட் சீட்">சிமெண்ட் சீட்</SelectItem>
+                      <SelectItem value="தகர சீட்">தகர சீட்</SelectItem>
+                      <SelectItem value="கூரைச்சாலை">கூரைச்சாலை</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
