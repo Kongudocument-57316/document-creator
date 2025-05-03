@@ -1745,10 +1745,11 @@ export function CreateSaleDocumentForm({
                     வருபவரும், ${buyer.relative_name} அவர்களின் ${getFormattedRelationType(buyer)} ${buyer.age} வயதுடைய`)}{" "}
                     <b>{buyer.name}</b> {formatTextWithFonts(`(ஆதார் அடையாள அட்டை எண்:-`)}
                     <b>{formatTextWithFonts(buyer.aadhaar_number)}</b>
-                    {formatTextWithFonts(`, கைப்பேசி எண்:-`)}
-                    <b>{formatTextWithFonts(buyer.phone)}</b>
-                    {formatTextWithFonts(`)-${index + 1}
-                    ${index === buyers.length - 1 ? " ஆகிய தங்களுக்கு" : ""}`)}
+                    {formatTextWithFonts(
+                      buyers.length > 1 
+                        ? `)-${index + 1}${index === buyers.length - 1 ? " ஆகிய தங்களுக்கு" : ""}`
+                        : ""
+                    )}
                   </p>
                 </div>
               ))}
