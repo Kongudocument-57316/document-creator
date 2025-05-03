@@ -69,9 +69,7 @@
     "html-to-image": "latest",
     "html2canvas": "latest",
     "html2pdf.js": "latest",
-    "uuid": "latest",
-    "fs": "latest",
-    "path": "latest"
+    "uuid": "latest"
   },
   "devDependencies": {
     "@types/node": "^22",
