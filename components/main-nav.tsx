@@ -41,6 +41,15 @@ export function MainNav({ className }: MainNavProps) {
       >
         ஆவண விவரங்கள்
       </Link>
+      <Link
+        href="/system-settings/database"
+        className={cn(
+          "text-sm font-medium transition-colors hover:text-primary",
+          pathname.includes("/system-settings/database") ? "text-primary" : "text-muted-foreground",
+        )}
+      >
+        தரவுத்தள நிர்வாகம்
+      </Link>
     </nav>
   )
 }
