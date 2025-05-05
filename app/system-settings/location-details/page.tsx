@@ -82,7 +82,7 @@ export default function LocationDetails() {
         </div>
       </main>
       <footer className="bg-blue-100 border-t border-blue-200 py-4 text-center text-blue-700">
-        <p>© 2025 தமிழ் ஆவண மேலாண்மை. அனைத்து உரிமைகளும் பாதுகாக்கப்பட்டவை.</p>
+        <p>© 2023 தமிழ் ஆவண மேலாண்மை. அனைத்து உரிமைகளும் பாதுகாக்கப்பட்டவை.</p>
       </footer>
     </div>
   )

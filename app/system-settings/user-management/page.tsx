@@ -41,7 +41,7 @@ export default function UserManagement({ searchParams }: { searchParams: { tab?:
         </div>
       </main>
       <footer className="bg-green-100 border-t border-green-200 py-4 text-center text-green-700">
-        <p>© 2025 தமிழ் ஆவண மேலாண்மை. அனைத்து உரிமைகளும் பாதுகாக்கப்பட்டவை.</p>
+        <p>© 2023 தமிழ் ஆவண மேலாண்மை. அனைத்து உரிமைகளும் பாதுகாக்கப்பட்டவை.</p>
       </footer>
     </div>
   )

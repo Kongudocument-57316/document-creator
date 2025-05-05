@@ -54,7 +54,7 @@ export default function Home() {
         </div>
       </main>
       <footer className="bg-mint-100 border-t border-mint-200 py-4 text-center text-mint-700">
-        <p>© 2025 தமிழ் ஆவண மேலாண்மை. அனைத்து உரிமைகளும் பாதுகாக்கப்பட்டவை.</p>
+        <p>© 2023 தமிழ் ஆவண மேலாண்மை. அனைத்து உரிமைகளும் பாதுகாக்கப்பட்டவை.</p>
       </footer>
     </div>
   )

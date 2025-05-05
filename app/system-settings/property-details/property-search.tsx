@@ -287,7 +287,7 @@ export function PropertySearch() {
     },
     {
       accessorKey: "village_name",
-      header: "���ிராமம்",
+      header: "கிராமம்",
     },
     {
       id: "actions",

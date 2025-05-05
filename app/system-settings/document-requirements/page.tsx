@@ -124,7 +124,7 @@ export default function DocumentRequirements({ searchParams }: { searchParams: {
         </div>
       </main>
       <footer className="bg-rose-100 border-t border-rose-200 py-4 text-center text-rose-700">
-        <p>© 2025 தமிழ் ஆவண மேலாண்மை. அனைத்து உரிமைகளும் பாதுகாக்கப்பட்டவை.</p>
+        <p>© 2023 தமிழ் ஆவண மேலாண்மை. அனைத்து உரிமைகளும் பாதுகாக்கப்பட்டவை.</p>
       </footer>
     </div>
   )

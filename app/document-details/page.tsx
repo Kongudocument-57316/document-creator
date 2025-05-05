@@ -29,7 +29,7 @@ export default function DocumentDetails() {
         </div>
       </main>
       <footer className="bg-amber-100 border-t border-amber-200 py-4 text-center text-amber-700">
-        <p>© 2025 தமிழ் ஆவண மேலாண்மை. அனைத்து உரிமைகளும் பாதுகாக்கப்பட்டவை.</p>
+        <p>© 2023 தமிழ் ஆவண மேலாண்மை. அனைத்து உரிமைகளும் பாதுகாக்கப்பட்டவை.</p>
       </footer>
     </div>
   )

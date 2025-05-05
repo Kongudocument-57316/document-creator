@@ -71,7 +71,7 @@ export default function SystemSettings() {
         </div>
       </main>
       <footer className="bg-lavender-100 border-t border-lavender-200 py-4 text-center text-lavender-700">
-        <p>© 2025 தமிழ் ஆவண மேலாண்மை. அனைத்து உரிமைகளும் பாதுகாக்கப்பட்டவை.</p>
+        <p>© 2023 தமிழ் ஆவண மேலாண்மை. அனைத்து உரிமைகளும் பாதுகாக்கப்பட்டவை.</p>
       </footer>
     </div>
   )

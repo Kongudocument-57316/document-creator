@@ -32,7 +32,7 @@ export default function SearchSaleDocument() {
         </div>
       </main>
       <footer className="bg-sky-100 border-t border-sky-200 py-4 text-center text-sky-700">
-        <p>© 2025 தமிழ் ஆவண மேலாண்மை. அனைத்து உரிமைகளும் பாதுகாக்கப்பட்டவை.</p>
+        <p>© 2023 தமிழ் ஆவண மேலாண்மை. அனைத்து உரிமைகளும் பாதுகாக்கப்பட்டவை.</p>
       </footer>
     </div>
   )

@@ -35,7 +35,7 @@ export function PaymentMethodForm() {
       const { data, error } = await supabase.from("payment_methods").select("*").order("name")
 
       if (error) {
-        toast.error("பணம் செலு��்தும் முறைகளை பெறுவதில் பிழை: " + error.message)
+        toast.error("பணம் செலுத்தும் முறைகளை பெறுவதில் பிழை: " + error.message)
         return
       }
 
