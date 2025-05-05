@@ -1,61 +1,70 @@
-import { Header } from "@/components/header"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
-import { Settings, FileText } from "lucide-react"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Settings, FileText, FileEdit } from "lucide-react"
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen flex-col bg-mint-50">
-      <Header className="bg-mint-100 border-mint-200" />
-      <main className="flex-1 p-6">
-        <div className="max-w-4xl mx-auto">
-          <h1 className="text-3xl font-bold mb-6 text-mint-800 text-center">தமிழ் ஆவண மேலாண்மை</h1>
+    <main className="flex min-h-screen flex-col items-center justify-between p-24">
+      <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm">
+        <h1 className="text-4xl font-bold text-center mb-12">தமிழ் ஆவ</h1>
 
-          <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-1">
-            <Link href="/system-settings">
-              <Card className="hover:bg-mint-100 cursor-pointer transition-colors border-mint-200 shadow-md">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-xl font-medium text-mint-700">அமைப்பு விவரங்கள்</CardTitle>
-                  <Settings className="h-6 w-6 text-mint-500" />
-                </CardHeader>
-                <CardContent>
-                  <CardDescription className="text-mint-700 text-base">
-                    இட விவரங்கள், பயனாளர்கள் மேலாண்மை, ஆவண விபரங்கள், மனையின் சொத்து விவரங்கள் ஆகியவற்றை நிர்வகிக்க இங்கே கிளிக் செய்யவும்
-                  </CardDescription>
-                </CardContent>
-              </Card>
-            </Link>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Card className="border-green-200">
+            <CardHeader className="bg-green-50 rounded-t-lg">
+              <CardTitle className="text-green-700">அமைப்பு விவரங்கள்</CardTitle>
+              <CardDescription>System Settings</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <p className="text-gray-600">அமைப்பு விவரங்களை நிர்வகிக்கவும்</p>
+            </CardContent>
+            <CardFooter>
+              <Link href="/system-settings" className="w-full">
+                <Button className="w-full bg-green-600 hover:bg-green-700">
+                  <Settings className="mr-2 h-4 w-4" />
+                  அமைப்பு விவரங்கள்
+                </Button>
+              </Link>
+            </CardFooter>
+          </Card>
 
-            <Link href="/document-details">
-              <Card className="hover:bg-mint-100 cursor-pointer transition-colors border-mint-200 shadow-md">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-xl font-medium text-mint-700">ஆவண விவரங்கள்</CardTitle>
-                  <FileText className="h-6 w-6 text-mint-500" />
-                </CardHeader>
-                <CardContent>
-                  <CardDescription className="text-mint-700 text-base">
-                    ஆவணங்களை நிர்வகிக்க இங்கே கிளிக் செய்யவும்
-                  </CardDescription>
-                </CardContent>
-              </Card>
-            </Link>
-          </div>
+          <Card className="border-amber-200">
+            <CardHeader className="bg-amber-50 rounded-t-lg">
+              <CardTitle className="text-amber-700">ஆவண விவரங்கள்</CardTitle>
+              <CardDescription>Document Details</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <p className="text-gray-600">ஆவண விவரங்களை நிர்வகிக்கவும்</p>
+            </CardContent>
+            <CardFooter>
+              <Link href="/document-details" className="w-full">
+                <Button className="w-full bg-amber-600 hover:bg-amber-700">
+                  <FileText className="mr-2 h-4 w-4" />
+                  ஆவண விவரங்கள்
+                </Button>
+              </Link>
+            </CardFooter>
+          </Card>
 
-          <div className="mt-8 p-6 bg-mint-100 rounded-lg border border-mint-200 shadow-sm">
-            <h2 className="text-xl font-semibold text-mint-800 mb-4">வரவேற்கிறோம்!</h2>
-            <p className="text-mint-700 mb-3">இந்த மென்பொருள் ஆவணங்களை எளிதாக நிர்வகிக்க உதவுகிறது. இதன் மூலம் நீங்கள்:</p>
-            <ul className="list-disc pl-5 text-mint-700 space-y-2">
-              <li>இட விவரங்களை பதிவு செய்யலாம்</li>
-              <li>பயனாளர்களை நிர்வகிக்கலாம்</li>
-              <li>ஆவண விபரங்களை சேமிக்கலாம்</li>
-              <li>மனையின் சொத்து விபரங்களை பதிவு செய்யலாம்</li>
-            </ul>
-          </div>
+          <Card className="border-purple-200">
+            <CardHeader className="bg-purple-50 rounded-t-lg">
+              <CardTitle className="text-purple-700">ஆவண எடிட்டர்</CardTitle>
+              <CardDescription>Document Editor</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <p className="text-gray-600">ஆவணங்களை உருவாக்கவும், திருத்தவும், ஏற்றுமதி செய்யவும்</p>
+            </CardContent>
+            <CardFooter>
+              <Link href="/document-editor" className="w-full">
+                <Button className="w-full bg-purple-600 hover:bg-purple-700">
+                  <FileEdit className="mr-2 h-4 w-4" />
+                  ஆவண எடிட்டர்
+                </Button>
+              </Link>
+            </CardFooter>
+          </Card>
         </div>
-      </main>
-      <footer className="bg-mint-100 border-t border-mint-200 py-4 text-center text-mint-700">
-        <p>© 2023 தமிழ் ஆவண மேலாண்மை. அனைத்து உரிமைகளும் பாதுகாக்கப்பட்டவை.</p>
-      </footer>
-    </div>
+      </div>
+    </main>
   )
 }

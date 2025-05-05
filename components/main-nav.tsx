@@ -1,45 +1,30 @@
-"use client"
-
+import type React from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
-
 import { cn } from "@/lib/utils"
 
-interface MainNavProps {
-  className?: string
-}
-
-export function MainNav({ className }: MainNavProps) {
-  const pathname = usePathname()
-
+export function MainNav({ className, ...props }: React.HTMLAttributes<HTMLElement>) {
   return (
-    <nav className={cn("flex items-center space-x-4 lg:space-x-6", className)}>
-      <Link
-        href="/"
-        className={cn(
-          "text-sm font-medium transition-colors hover:text-primary",
-          pathname === "/" ? "text-primary" : "text-muted-foreground",
-        )}
-      >
+    <nav className={cn("flex items-center space-x-4 lg:space-x-6", className)} {...props}>
+      <Link href="/" className="text-sm font-medium transition-colors hover:text-primary">
         முகப்பு
       </Link>
       <Link
         href="/system-settings"
-        className={cn(
-          "text-sm font-medium transition-colors hover:text-primary",
-          pathname.includes("/system-settings") ? "text-primary" : "text-muted-foreground",
-        )}
+        className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
       >
         அமைப்பு விவரங்கள்
       </Link>
       <Link
         href="/document-details"
-        className={cn(
-          "text-sm font-medium transition-colors hover:text-primary",
-          pathname.includes("/document-details") ? "text-primary" : "text-muted-foreground",
-        )}
+        className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
       >
         ஆவண விவரங்கள்
+      </Link>
+      <Link
+        href="/document-editor"
+        className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
+      >
+        ஆவண எடிட்டர்
       </Link>
     </nav>
   )
