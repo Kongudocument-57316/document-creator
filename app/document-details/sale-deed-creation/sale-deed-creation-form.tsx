@@ -14,6 +14,7 @@ import { PaymentTab } from "./tabs/payment-tab"
 import { WitnessTab } from "./tabs/witness-tab"
 import { FileText, User, Users, FileSearch, Home, CreditCard, UserCheck } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { SaleDeedPdfGenerator } from "./sale-deed-pdf-generator"
 
 type TabType = "deed" | "buyer" | "seller" | "previousDoc" | "property" | "payment" | "witness"
 
@@ -30,6 +31,7 @@ export function SaleDeedCreationForm() {
   })
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
+  const [showPdfGenerator, setShowPdfGenerator] = useState(false)
 
   const handleTabChange = (tab: TabType) => {
     setActiveTab(tab)
@@ -68,7 +70,7 @@ export function SaleDeedCreationForm() {
       await new Promise((resolve) => setTimeout(resolve, 1000))
 
       toast.success("கிரைய ஆவணம் வெற்றிகரமாக சேமிக்கப்பட்டது")
-      router.push("/document-details/sale-document/search")
+      setShowPdfGenerator(true) // Show the PDF generator after successful submission
     } catch (error: any) {
       toast.error("பிழை ஏற்பட்டது: " + error.message)
     } finally {
@@ -128,6 +130,12 @@ export function SaleDeedCreationForm() {
         )}
       </Card>
 
+      {showPdfGenerator && (
+        <div className="mt-6">
+          <SaleDeedPdfGenerator formData={formData} title="கிரைய ஆவணம்" />
+        </div>
+      )}
+
       {/* Navigation Buttons */}
       <div className="flex justify-between">
         <Button
@@ -154,6 +162,14 @@ export function SaleDeedCreationForm() {
             அடுத்து
           </Button>
         )}
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => setShowPdfGenerator(!showPdfGenerator)}
+          className="border-purple-300 text-purple-700 hover:bg-purple-100"
+        >
+          {showPdfGenerator ? "PDF ஏற்றுமதியை மறை" : "PDF ஏற்றுமதியைக் காட்டு"}
+        </Button>
       </div>
     </div>
   )
