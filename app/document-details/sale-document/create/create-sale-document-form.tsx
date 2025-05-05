@@ -23,9 +23,6 @@ import { exportToDocx, exportToPdf } from "./export-utils"
 import { DocumentNameDialog } from "@/components/document-name-dialog"
 import { saveDocument } from "./save-document-action"
 
-// BuildingForm கூறுகளை import செய்ய கோப்பின் ஆரம்பத்தில் இந்த import அறிக்கைகளைச் சேர்க்கவும்:
-import { BuildingForm, type BuildingDetail } from "./building-form"
-
 // Basic types for our entities
 interface SubRegistrarOffice {
   id: number
@@ -444,12 +441,6 @@ export function CreateSaleDocumentForm({
   const [transactionDate, setTransactionDate] = useState("")
   const [accountTypes, setAccountTypes] = useState<{ id: number; name: string }[]>([])
 
-  // கட்டிட விவரங்கள்
-  const [shouldShowBuildingForm, setShouldShowBuildingForm] = useState(false)
-  const [buildings, setBuildings] = useState<BuildingDetail[]>([])
-  const [selectedBuildingForEdit, setSelectedBuildingForEdit] = useState<BuildingDetail | null>(null)
-  const [isEditingBuilding, setIsEditingBuilding] = useState(false)
-
   // Reference data stores
   const [subRegistrarOffices, setSubRegistrarOffices] = useState<SubRegistrarOffice[]>([])
   const [bookNumbers, setBookNumbers] = useState<BookNumber[]>([])
@@ -489,34 +480,6 @@ export function CreateSaleDocumentForm({
   // Document name dialog state
   const [showNameDialog, setShowNameDialog] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
-
-  // கட்டிட சேர்ப்பு செயல்பாடு
-  const handleAddBuilding = (building: BuildingDetail) => {
-    if (isEditingBuilding) {
-      // ஏற்கனவே உள்ள கட்டிடத்தை புதுப்பித்தல்
-      setBuildings(buildings.map((b) => (b.id === building.id ? building : b)))
-      setIsEditingBuilding(false)
-      setSelectedBuildingForEdit(null)
-    } else {
-      // புதிய கட்டிடம் சேர்த்தல்
-      setBuildings([...buildings, building])
-    }
-    setShouldShowBuildingForm(false)
-    toast.success(isEditingBuilding ? "கட்டிட விவரங்கள் வெற்றிகரமாக புதுப்பிக்கப்பட்டன" : "கட்டிட விவரங்கள் வெற்றிகரமாக சேர்க்கப்பட்டன")
-  }
-
-  // கட்டிட திருத்தம் செயல்பாடு
-  const handleEditBuilding = (building: BuildingDetail) => {
-    setSelectedBuildingForEdit(building)
-    setIsEditingBuilding(true)
-    setShouldShowBuildingForm(true)
-  }
-
-  // கட்டிட நீக்கம் செயல்பாடு
-  const handleRemoveBuilding = (buildingId: string) => {
-    setBuildings(buildings.filter((building) => building.id !== buildingId))
-    toast.success("கட்டிட விவரங்கள் வெற்றிகரமாக நீக்கப்பட்டன")
-  }
 
   const supabase = getSupabaseBrowserClient()
 
@@ -674,7 +637,6 @@ export function CreateSaleDocumentForm({
           witnesses: witnesses.map((w) => w.id),
           properties: selectedProperties.map((p) => p.id),
           propertyDetails: selectedProperties.map((p) => p.property_details || ""),
-          buildings: buildings,
         })
       }
 
@@ -705,7 +667,6 @@ export function CreateSaleDocumentForm({
     sellers,
     witnesses,
     selectedProperties,
-    buildings,
   ])
 
   // Add a new useEffect that updates only when the preview tab is active
@@ -959,7 +920,7 @@ export function CreateSaleDocumentForm({
       }
     }
 
-    // மற்ற உறவு முறைகளுக்கு அப்படியே திருப்பி அனுப்புதல்
+    // மற்ற உறவு முறைகளுக்கு அப��படியே திருப்பி அனுப்புதல்
     return user.relation_type
   }
 
@@ -1553,14 +1514,11 @@ export function CreateSaleDocumentForm({
   // Handle land type checkbox change
   const handleLandTypeChange = (id: string) => {
     setSelectedLandTypes((prev) => {
-      const newLandTypes = prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
-
-      // கட்டிடத்துடன் கூடிய நில வகைகள் தேர்ந்தெடுக்கப்பட்டால் கட்டிட படிவத்தை காட்டு
-      const buildingLandTypes = ["1", "3", "4"] // கட்டிடத்துடன் கூடிய நில வகைகளின் ID
-      const hasBuildingType = newLandTypes.some((type) => buildingLandTypes.includes(type))
-      setShouldShowBuildingForm(hasBuildingType)
-
-      return newLandTypes
+      if (prev.includes(id)) {
+        return prev.filter((item) => item !== id)
+      } else {
+        return [...prev, id]
+      }
     })
   }
 
@@ -1787,9 +1745,10 @@ export function CreateSaleDocumentForm({
                     வருபவரும், ${buyer.relative_name} அவர்களின் ${getFormattedRelationType(buyer)} ${buyer.age} வயதுடைய`)}{" "}
                     <b>{buyer.name}</b> {formatTextWithFonts(`(ஆதார் அடையாள அட்டை எண்:-`)}
                     <b>{formatTextWithFonts(buyer.aadhaar_number)}</b>
-                    {formatTextWithFonts(
-                      buyers.length > 1 ? `)-${index + 1}${index === buyers.length - 1 ? " ஆகிய தங்களுக்கு" : ""}` : "",
-                    )}
+                    {formatTextWithFonts(`, கைப்பேசி எண்:-`)}
+                    <b>{formatTextWithFonts(buyer.phone)}</b>
+                    {formatTextWithFonts(`)-${index + 1}
+                    ${index === buyers.length - 1 ? " ஆகிய தங்களுக்கு" : ""}`)}
                   </p>
                 </div>
               ))}
@@ -1881,33 +1840,31 @@ export function CreateSaleDocumentForm({
 
               {selectedPaymentMethod === "4" && (
                 <p className="mt-2">
-                  கிரையம் பெறும் {buyers.length > 0 ? buyers[0].name : "[BUYER PARTY NAME]"} அவர்களின்{" "}
+                  கிரையம் பெறும் {buyers.length > 0 ? buyers[0].name : "[BUYER PARTY NAME]"} அவர்களின் {" "}
                   {buyerBankName || "[BUYER BANK NAME]"}, {buyerBankBranch || "[BUYER BANK BRANCH]"},{" "}
                   {getAccountTypeName(buyerAccountType) || "[BUYER ACCOUNT TYPE]"}
-                  {buyerAccountNumber || "[ACCOUNT NO.]"}-இதிலிருந்து, {pronounMy}{" "}
-                  {sellerBankName || "[SELLER BANK NAME]"}, {sellerBankBranch || "[SELLER BANK BRANCH]"},{" "}
+                  {buyerAccountNumber || "[ACCOUNT NO.]"}-இதிலிருந்து, {pronounMy} {sellerBankName || "[SELLER BANK NAME]"},{" "}
+                  {sellerBankBranch || "[SELLER BANK BRANCH]"},{" "}
                   {getAccountTypeName(sellerAccountType) || "[SELLER ACCOUNT TYPE]"}
                   {sellerAccountNumber || "[ACCOUNT NO.]"}-க்கு வங்கி மின்னணு பரிவர்த்தனை எண்.(UPI):-
                   {transactionNumber || "[TRANSACATION NO]"}-மூலம் ரூ.
                   {formatTextWithFonts(saleAmount)}/-(ரூபாய் {saleAmountWords}) மட்டும்{" "}
-                  {transactionDate || "[TRANSACATION DATE/MONTH/YEAR]"}-ம் தேதியில் {pronounMe} வரவாகி விட்டபடியால், கீழ்க்கண்ட
-                  சொத்துக்களை இன்று தங்களுக்கு சுத்தக் கிரையமும் சுவாதீனமும் செய்து {verbGive}.
+                  {transactionDate || "[TRANSACATION DATE/MONTH/YEAR]"}-ம் தேதியில் {pronounMe} வரவாகி விட்டபடியால், கீழ்க்கண்ட சொத்துக்களை இன்று தங்களுக்கு சுத்தக் கிரையமும் சுவாதீனமும் செய்து {verbGive}.
                 </p>
               )}
 
               {selectedPaymentMethod === "6" && (
                 <p className="mt-2">
-                  கிரையம் பெறும் {buyers.length > 0 ? buyers[0].name : "[BUYER PARTY NAME]"} அவர்களின்{" "}
+                  கிரையம் பெறும் {buyers.length > 0 ? buyers[0].name : "[BUYER PARTY NAME]"} அவர்களின் {" "}
                   {buyerBankName || "[BUYER BANK NAME]"}, {buyerBankBranch || "[BUYER BANK BRANCH]"},{" "}
                   {getAccountTypeName(buyerAccountType) || "[BUYER ACCOUNT TYPE]"}
-                  {buyerAccountNumber || "[ACCOUNT NO.]"}-இதிலிருந்து, {pronounMy}{" "}
-                  {sellerBankName || "[SELLER BANK NAME]"}, {sellerBankBranch || "[SELLER BANK BRANCH]"},{" "}
+                  {buyerAccountNumber || "[ACCOUNT NO.]"}-இதிலிருந்து, {pronounMy} {sellerBankName || "[SELLER BANK NAME]"},{" "}
+                  {sellerBankBranch || "[SELLER BANK BRANCH]"},{" "}
                   {getAccountTypeName(sellerAccountType) || "[SELLER ACCOUNT TYPE]"}
                   {sellerAccountNumber || "[ACCOUNT NO.]"}-க்கு வங்கி மின்னணு பரிவர்த்தனை எண்.(NEFT):-
                   {transactionNumber || "[TRANSACATION NO]"}-மூலம் ரூ.
                   {formatTextWithFonts(saleAmount)}/-(ரூபாய் {saleAmountWords}) மட்டும்{" "}
-                  {transactionDate || "[TRANSACATION DATE/MONTH/YEAR]"}-ம் தேதியில் {pronounMe} வரவாகி விட்டபடியால், கீழ்க்கண்ட
-                  சொத்துக்களை இன்று தங்களுக்கு சுத்தக் கிரையமும் சுவாதீனமும் செய்து {verbGive}.
+                  {transactionDate || "[TRANSACATION DATE/MONTH/YEAR]"}-ம் தேதியில் {pronounMe} வரவாகி விட்டபடியால், கீழ்க்கண்ட சொத்துக்களை இன்று தங்களுக்கு சுத்தக் கிரையமும் சுவாதீனமும் செய்து {verbGive}.
                 </p>
               )}
 
@@ -1916,30 +1873,28 @@ export function CreateSaleDocumentForm({
                   கிரையம் பெறும் {buyers.length > 0 ? buyers[0].name : "[BUYER PARTY NAME]"} அவர்களின்{" "}
                   {buyerBankName || "[BUYER BANK NAME]"}, {buyerBankBranch || "[BUYER BANK BRANCH]"},{" "}
                   {getAccountTypeName(buyerAccountType) || "[BUYER ACCOUNT TYPE]"}
-                  {buyerAccountNumber || "[ACCOUNT NO.]"}-இதிலிருந்து, {pronounMy}{" "}
-                  {sellerBankName || "[SELLER BANK NAME]"}, {sellerBankBranch || "[SELLER BANK BRANCH]"},{" "}
+                  {buyerAccountNumber || "[ACCOUNT NO.]"}-இதிலிருந்து, {pronounMy} {sellerBankName || "[SELLER BANK NAME]"},{" "}
+                  {sellerBankBranch || "[SELLER BANK BRANCH]"},{" "}
                   {getAccountTypeName(sellerAccountType) || "[SELLER ACCOUNT TYPE]"}
                   {sellerAccountNumber || "[ACCOUNT NO.]"}-க்கு வங்கி மின்னணு பரிவர்த்தனை எண்.(RTGS):-
                   {transactionNumber || "[TRANSACATION NO]"}-மூலம் ரூ.
                   {formatTextWithFonts(saleAmount)}/-(ரூபாய் {saleAmountWords}) மட்டும்{" "}
-                  {transactionDate || "[TRANSACATION DATE/MONTH/YEAR]"}-ம் தேதியில் {pronounMe} வரவாகி விட்டபடியால், கீழ்க்கண்ட
-                  சொத்துக்களை இன்று தங்களுக்கு சுத்தக் கிரையமும் சுவாதீனமும் செய்து {verbGive}.
+                  {transactionDate || "[TRANSACATION DATE/MONTH/YEAR]"}-ம் தேதியில் {pronounMe} வரவாகி விட்டபடியால், கீழ்க்கண்ட சொத்துக்களை இன்று தங்களுக்கு சுத்தக் கிரையமும் சுவாதீனமும் செய்து {verbGive}.
                 </p>
               )}
 
               {selectedPaymentMethod === "5" && (
                 <p className="mt-2">
-                  கிரையம் பெறும் {buyers.length > 0 ? buyers[0].name : "[BUYER PARTY NAME]"} அவர்களின்{" "}
+                  கிரையம் பெறும் {buyers.length > 0 ? buyers[0].name : "[BUYER PARTY NAME]"} அவர்களின்{" "} 
                   {buyerBankName || "[BUYER BANK NAME]"}, {buyerBankBranch || "[BUYER BANK BRANCH]"},{" "}
                   {getAccountTypeName(buyerAccountType) || "[BUYER ACCOUNT TYPE]"}
-                  {buyerAccountNumber || "[ACCOUNT NO.]"}-இதிலிருந்து, {pronounMy}{" "}
-                  {sellerBankName || "[SELLER BANK NAME]"}, {sellerBankBranch || "[SELLER BANK BRANCH]"},{" "}
+                  {buyerAccountNumber || "[ACCOUNT NO.]"}-இதிலிருந்து, {pronounMy} {sellerBankName || "[SELLER BANK NAME]"},{" "}
+                  {sellerBankBranch || "[SELLER BANK BRANCH]"},{" "}
                   {getAccountTypeName(sellerAccountType) || "[SELLER ACCOUNT TYPE]"}
                   {sellerAccountNumber || "[ACCOUNT NO.]"}-க்கு வங்கி மின்னணு பரிவர்த்தனை எண்.(IMPS):-
                   {transactionNumber || "[TRANSACATION NO]"}-மூலம் ரூ.
                   {formatTextWithFonts(saleAmount)}/-(ரூபாய் {saleAmountWords}) மட்டும்{" "}
-                  {transactionDate || "[TRANSACATION DATE/MONTH/YEAR]"}-ம் தேதியில் {pronounMe} வரவாகி விட்டபடியால், கீழ்க்கண்ட
-                  சொத்துக்களை இன்று தங்களுக்கு சுத்தக் கிரையமும் சுவாதீனமும் செய்து {verbGive}.
+                  {transactionDate || "[TRANSACATION DATE/MONTH/YEAR]"}-ம் தேதியில் {pronounMe} வரவாகி விட்டபடியால், கீழ்க்கண்ட சொத்துக்களை இன்று தங்களுக்கு சுத்தக் கிரையமும் சுவாதீனமும் செய்து {verbGive}.
                 </p>
               )}
             </div>
@@ -1988,7 +1943,7 @@ export function CreateSaleDocumentForm({
               <b>
                 {documentNumber}/{documentYear}
               </b>{" "}
-              நெ {getDocumentTypeName()} ஆவணத்தின் {getSubmissionTypeName()} இக்கிரைய ஆவணத்திற்கு ஆதரவாக தங்களுக்கு {verbGive}.
+              ந�� {getDocumentTypeName()} ஆவணத்தின் {getSubmissionTypeName()} இக்கிரைய ஆவணத்திற்கு ஆதரவாக தங்களுக்கு {verbGive}.
             </p>
             <p className="mt-2">
               மேலும் தணிக்கையின் போது இந்த ஆவணம் தொடர்பாக அரசுக்கு இழப்பு ஏற்படின் அத்தொகையை கிரையம் {nounReceivingPerson} செலுத்தவும்{" "}
@@ -2003,17 +1958,6 @@ export function CreateSaleDocumentForm({
               {selectedProperties.map((property, index) => (
                 <div key={property.id} className="mb-4">
                   <p className="whitespace-pre-line">{property.property_details}</p>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* கட்டிட விவரங்கள் */}
-          {buildings.length > 0 && (
-            <div className="mb-6">
-              {buildings.map((building, index) => (
-                <div key={building.id} className="mb-4">
-                  <p className="whitespace-pre-line">{building.description}</p>
                 </div>
               ))}
             </div>
@@ -2645,86 +2589,6 @@ export function CreateSaleDocumentForm({
                       </div>
                     ))}
                   </div>
-                  {selectedLandTypes.length > 0 && (
-                    <div className="mt-4">
-                      <h4 className="font-medium mb-2 text-cyan-800">தேர்ந்தெடுக்கப்பட்ட நில வகைகள்</h4>
-                      <div className="flex flex-wrap gap-2">
-                        {selectedLandTypes.map((typeId) => {
-                          const landType = landTypes.find((type) => type.id.toString() === typeId)
-                          return landType ? (
-                            <div key={typeId} className="bg-cyan-100 text-cyan-800 px-3 py-1 rounded-full text-sm">
-                              {landType.name}
-                            </div>
-                          ) : null
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* கட்டிட விவரங்கள் படிவம் */}
-                  {shouldShowBuildingForm && (
-                    <BuildingForm
-                      onAddBuilding={handleAddBuilding}
-                      onCancel={() => {
-                        setShouldShowBuildingForm(false)
-                        setIsEditingBuilding(false)
-                        setSelectedBuildingForEdit(null)
-                      }}
-                      initialData={selectedBuildingForEdit || undefined}
-                      isEdit={isEditingBuilding}
-                    />
-                  )}
-
-                  {/* சேர்க்கப்பட்ட கட்டிடங்களின் பட்டியல் */}
-                  {!shouldShowBuildingForm && buildings.length > 0 && (
-                    <div className="mt-4">
-                      <div className="flex justify-between mb-2">
-                        <h4 className="font-medium mb-2 text-cyan-800">சேர்க்கப்பட்ட கட்டிடங்கள்</h4>
-                        <Button
-                          onClick={() => setShouldShowBuildingForm(true)}
-                          className="bg-cyan-600 hover:bg-cyan-700 text-white"
-                          size="sm"
-                        >
-                          <Plus className="h-4 w-4 mr-1" />
-                          புதிய கட்டிடம் சேர்க்க
-                        </Button>
-                      </div>
-                      <div className="space-y-2">
-                        {buildings.map((building) => (
-                          <div key={building.id} className="bg-white p-3 rounded-lg border border-cyan-200">
-                            <div className="flex justify-between">
-                              <div>
-                                <h5 className="font-medium text-cyan-700">
-                                  {building.buildingType} - {building.facingDirection}ப் பார்த்த கட்டிடம்
-                                </h5>
-                                <p className="text-sm text-gray-600">
-                                  {building.totalSqFeet} சதுரடி | {building.buildingAge} வருடங்கள் பழைமையானது
-                                </p>
-                              </div>
-                              <div className="flex gap-1">
-                                <Button
-                                  onClick={() => handleEditBuilding(building)}
-                                  variant="outline"
-                                  size="sm"
-                                  className="border-cyan-300 text-cyan-700 hover:bg-cyan-100 h-8 px-2"
-                                >
-                                  திருத்து
-                                </Button>
-                                <Button
-                                  onClick={() => handleRemoveBuilding(building.id)}
-                                  variant="outline"
-                                  size="sm"
-                                  className="border-red-300 text-red-700 hover:bg-red-50 h-8 px-2"
-                                >
-                                  நீக்கு
-                                </Button>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
 
                 {/* சொத்து தேடுதல் */}

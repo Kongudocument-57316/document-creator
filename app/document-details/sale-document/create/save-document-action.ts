@@ -28,7 +28,6 @@ export interface SaleDocumentData {
   properties: number[]
   propertyDetails: string[]
   docxData?: Uint8Array | null
-  buildings?: any[] // கட்டிட விவரங்கள்
   paymentDetails?: {
     paymentMethodId: string
     buyerBankName: string
@@ -84,7 +83,6 @@ export async function saveDocument(data: SaleDocumentData) {
         payment_methods: data.paymentMethods,
         document_content: data.documentContent,
         docx_data: data.docxData,
-        buildings: data.buildings || [],
       })
       .select("id")
       .single()
