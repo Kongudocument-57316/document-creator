@@ -110,11 +110,3 @@ function convertNumberToTamilWords(num: number): string {
 
   return remainder === 0 ? croreText : croreText + " " + convertNumberToTamilWords(remainder)
 }
-
-export const convertToTamilNumber = (num: number | string): string => {
-  const number = typeof num === "string" ? Number.parseFloat(num) : num
-  if (isNaN(number)) {
-    return ""
-  }
-  return numToTamilWords(number)
-}

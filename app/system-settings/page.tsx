@@ -1,8 +1,7 @@
 import { Header } from "@/components/header"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
-import { MapPin, Users, Home, FileText, ArrowLeft } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { MapPin, Users, Home, FileText } from "lucide-react"
 
 export default function SystemSettings() {
   return (
@@ -10,29 +9,7 @@ export default function SystemSettings() {
       <Header className="bg-lavender-100 border-lavender-200" />
       <main className="flex-1 p-6">
         <div className="max-w-6xl mx-auto">
-          <div className="flex items-center gap-2 mb-6">
-            <Link href="/">
-              <Button
-                variant="outline"
-                size="icon"
-                className="border-lavender-300 text-lavender-700 hover:bg-lavender-100"
-                aria-label="Back"
-              >
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-            </Link>
-            <Link href="/">
-              <Button
-                variant="outline"
-                size="icon"
-                className="border-lavender-300 text-lavender-700 hover:bg-lavender-100"
-                aria-label="Home"
-              >
-                <Home className="h-4 w-4" />
-              </Button>
-            </Link>
-            <h2 className="text-2xl font-bold text-lavender-800 ml-2">அமைப்பு விவரங்கள்</h2>
-          </div>
+          <h2 className="text-2xl font-bold mb-6 text-lavender-800">அமைப்பு விவரங்கள்</h2>
 
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
             <Link href="/system-settings/location-details">
@@ -52,7 +29,7 @@ export default function SystemSettings() {
             <Link href="/system-settings/user-management">
               <Card className="hover:bg-lavender-50 cursor-pointer transition-colors border-lavender-200 shadow-sm">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-lg font-medium text-lavender-700">பயனாளர்கள மேலாண்மை</CardTitle>
+                  <CardTitle className="text-lg font-medium text-lavender-700">பயனாளர்கள் மேலாண்மை</CardTitle>
                   <Users className="h-5 w-5 text-lavender-500" />
                 </CardHeader>
                 <CardContent>
@@ -66,7 +43,7 @@ export default function SystemSettings() {
             <Link href="/system-settings/property-details">
               <Card className="hover:bg-lavender-50 cursor-pointer transition-colors border-lavender-200 shadow-sm">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-lg font-medium text-lavender-700">மனையின் சொத்து விவரங்கள்</CardTitle>
+                  <CardTitle className="text-lg font-medium text-lavender-700">மனையின் சொத்து விபரங்கள்</CardTitle>
                   <Home className="h-5 w-5 text-lavender-500" />
                 </CardHeader>
                 <CardContent>

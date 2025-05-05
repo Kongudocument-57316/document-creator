@@ -4,9 +4,6 @@ import { PropertyForm } from "./property-form"
 import { PropertySearch } from "./property-search"
 import { Suspense } from "react"
 import Loading from "./loading"
-import { Button } from "@/components/ui/button"
-import Link from "next/link"
-import { Home, ArrowLeft } from "lucide-react"
 
 export default function PropertyDetails() {
   return (
@@ -14,29 +11,7 @@ export default function PropertyDetails() {
       <Header className="bg-purple-100 border-purple-200" />
       <main className="flex-1 p-6">
         <div className="max-w-6xl mx-auto">
-          <div className="flex items-center gap-2 mb-6">
-            <Link href="/system-settings">
-              <Button
-                variant="outline"
-                size="icon"
-                className="border-purple-300 text-purple-700 hover:bg-purple-100"
-                aria-label="Back"
-              >
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-            </Link>
-            <Link href="/">
-              <Button
-                variant="outline"
-                size="icon"
-                className="border-purple-300 text-purple-700 hover:bg-purple-100"
-                aria-label="Home"
-              >
-                <Home className="h-4 w-4" />
-              </Button>
-            </Link>
-            <h2 className="text-2xl font-bold text-purple-800 ml-2">மனையின் சொத்து விபரங்கள்</h2>
-          </div>
+          <h2 className="text-2xl font-bold mb-6 text-purple-800">மனையின் சொத்து விபரங்கள்</h2>
 
           <Tabs defaultValue="add" className="w-full">
             <TabsList className="grid grid-cols-2 bg-purple-100">

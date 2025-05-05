@@ -50,7 +50,7 @@ export function DocumentTypeForm() {
     e.preventDefault()
 
     if (!name.trim()) {
-      toast.error("ஆவணத்தின் வகை���ை ���ள்ளிடவும்")
+      toast.error("ஆவணத்தின் வகையை உள்ளிடவும்")
       return
     }
 

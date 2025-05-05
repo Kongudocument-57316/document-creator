@@ -4,9 +4,6 @@ import { UserForm } from "./user-form"
 import { UserSearch } from "./user-search"
 import { Suspense } from "react"
 import Loading from "./loading"
-import { Button } from "@/components/ui/button"
-import Link from "next/link"
-import { Home, ArrowLeft } from "lucide-react"
 
 export default function UserManagement({ searchParams }: { searchParams: { tab?: string } }) {
   const defaultTab = searchParams.tab || "add"
@@ -16,29 +13,7 @@ export default function UserManagement({ searchParams }: { searchParams: { tab?:
       <Header className="bg-green-100 border-green-200" />
       <main className="flex-1 p-6">
         <div className="max-w-6xl mx-auto">
-          <div className="flex items-center gap-2 mb-6">
-            <Link href="/system-settings">
-              <Button
-                variant="outline"
-                size="icon"
-                className="border-green-300 text-green-700 hover:bg-green-100"
-                aria-label="Back"
-              >
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-            </Link>
-            <Link href="/">
-              <Button
-                variant="outline"
-                size="icon"
-                className="border-green-300 text-green-700 hover:bg-green-100"
-                aria-label="Home"
-              >
-                <Home className="h-4 w-4" />
-              </Button>
-            </Link>
-            <h2 className="text-2xl font-bold text-green-800 ml-2">பயனாளர்கள் மேலாண்மை</h2>
-          </div>
+          <h2 className="text-2xl font-bold mb-6 text-green-800">பயனாளர்கள் மேலாண்மை</h2>
 
           <Tabs defaultValue={defaultTab} className="w-full">
             <TabsList className="grid grid-cols-2 bg-green-100">

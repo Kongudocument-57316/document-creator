@@ -11,9 +11,6 @@ import { LandTypeForm } from "./land-type-form"
 import { ValueTypeForm } from "./value-type-form"
 import { Suspense } from "react"
 import Loading from "./loading"
-import { Button } from "@/components/ui/button"
-import Link from "next/link"
-import { Home, ArrowLeft } from "lucide-react"
 
 export default function DocumentRequirements({ searchParams }: { searchParams: { tab?: string } }) {
   const defaultTab = searchParams.tab || "book-number"
@@ -23,29 +20,7 @@ export default function DocumentRequirements({ searchParams }: { searchParams: {
       <Header className="bg-rose-100 border-rose-200" />
       <main className="flex-1 p-6">
         <div className="max-w-6xl mx-auto">
-          <div className="flex items-center gap-2 mb-6">
-            <Link href="/system-settings">
-              <Button
-                variant="outline"
-                size="icon"
-                className="border-rose-300 text-rose-700 hover:bg-rose-100"
-                aria-label="Back"
-              >
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-            </Link>
-            <Link href="/">
-              <Button
-                variant="outline"
-                size="icon"
-                className="border-rose-300 text-rose-700 hover:bg-rose-100"
-                aria-label="Home"
-              >
-                <Home className="h-4 w-4" />
-              </Button>
-            </Link>
-            <h2 className="text-2xl font-bold text-rose-800 ml-2">ஆவணத்திற்கு தேவையான விவரங்கள்</h2>
-          </div>
+          <h2 className="text-2xl font-bold mb-6 text-rose-800">ஆவணத்திற்கு தேவையான விவரங்கள்</h2>
 
           <Tabs defaultValue={defaultTab} className="w-full">
             <TabsList className="grid grid-cols-3 md:grid-cols-3 lg:grid-cols-3 bg-rose-100">

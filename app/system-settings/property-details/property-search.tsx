@@ -287,7 +287,7 @@ export function PropertySearch() {
     },
     {
       accessorKey: "village_name",
-      header: "கிராமம்",
+      header: "���ிராமம்",
     },
     {
       id: "actions",
@@ -445,7 +445,7 @@ export function PropertySearch() {
 
       <Card className="border-purple-200">
         <CardHeader className="bg-purple-50 rounded-t-lg">
-          <CardTitle className="text-purple-700">சொத்து விவ���ங்க���்</CardTitle>
+          <CardTitle className="text-purple-700">சொத்து விவரங்கள்</CardTitle>
         </CardHeader>
         <CardContent>
           <DataTable columns={columns} data={properties} />

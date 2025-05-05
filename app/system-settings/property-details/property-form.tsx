@@ -216,7 +216,7 @@ export function PropertyForm() {
               <FormLabel className="text-purple-700">மனையின் பெயர்</FormLabel>
               <FormControl>
                 <Input
-                  placeholder="மனையின் பெயர் உள்ளிடவும��"
+                  placeholder="மனையின் பெயர் உள்ளிடவும்"
                   {...field}
                   className="border-purple-200 focus-visible:ring-purple-400"
                 />
@@ -425,7 +425,7 @@ export function PropertyForm() {
               <FormLabel className="text-purple-700">சொத்து விவரங்கள்</FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder="சொத்து விவரங்��ளை உள்���ிடவும்"
+                  placeholder="சொத்து விவரங்கள் உள்ளிடவும்"
                   {...field}
                   className="border-purple-200 focus-visible:ring-purple-400"
                 />

@@ -312,7 +312,7 @@ export function VillageForm() {
               <Label htmlFor="taluk-select">வட்டம்</Label>
               <Select value={talukId} onValueChange={setTalukId} disabled={filteredTaluks.length === 0}>
                 <SelectTrigger>
-                  <SelectValue placeholder="வட்டத்தை த���ர்ந்தெடுக்கவும்" />
+                  <SelectValue placeholder="வட்டத்தை தேர்ந்தெடுக்கவும்" />
                 </SelectTrigger>
                 <SelectContent>
                   {filteredTaluks.map((taluk) => (

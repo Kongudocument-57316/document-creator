@@ -7,9 +7,6 @@ import { VillageForm } from "./village-form"
 import { TahsildarOfficeForm } from "./tahsildar-office-form"
 import { RegistrationDistrictForm } from "./registration-district-form"
 import { SubRegistrarOfficeForm } from "./sub-registrar-office-form"
-import { Button } from "@/components/ui/button"
-import Link from "next/link"
-import { Home, ArrowLeft } from "lucide-react"
 
 export default function LocationDetails() {
   return (
@@ -17,29 +14,7 @@ export default function LocationDetails() {
       <Header className="bg-blue-100 border-blue-200" />
       <main className="flex-1 p-6">
         <div className="max-w-6xl mx-auto">
-          <div className="flex items-center gap-2 mb-6">
-            <Link href="/system-settings">
-              <Button
-                variant="outline"
-                size="icon"
-                className="border-blue-300 text-blue-700 hover:bg-blue-100"
-                aria-label="Back"
-              >
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-            </Link>
-            <Link href="/">
-              <Button
-                variant="outline"
-                size="icon"
-                className="border-blue-300 text-blue-700 hover:bg-blue-100"
-                aria-label="Home"
-              >
-                <Home className="h-4 w-4" />
-              </Button>
-            </Link>
-            <h2 className="text-2xl font-bold text-blue-800 ml-2">இட விவரங்கள்</h2>
-          </div>
+          <h2 className="text-2xl font-bold mb-6 text-blue-800">இட விவரங்கள்</h2>
 
           <Tabs defaultValue="state" className="w-full">
             <TabsList className="grid grid-cols-3 md:grid-cols-7 bg-blue-100">
