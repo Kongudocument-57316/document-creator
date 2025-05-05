@@ -2,6 +2,7 @@ import { Header } from "@/components/header"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { Home, ArrowLeft } from "lucide-react"
+import { SaleDocumentForm } from "./sale-document-form"
 
 export default function CreateSaleDocument() {
   return (
@@ -25,9 +26,8 @@ export default function CreateSaleDocument() {
         <div className="max-w-6xl mx-auto">
           <h2 className="text-2xl font-bold mb-6 text-cyan-800">புதிய கிரைய ஆவணம் உருவாக்கு</h2>
 
-          {/* இங்கே புதிய கிரைய ஆவணம் உருவாக்கும் படிவம் வரும் */}
           <div className="bg-white p-6 rounded-lg border border-cyan-200 shadow-sm">
-            <p className="text-cyan-700">புதிய கிரைய ஆவணம் உருவாக்கும் படிவம்</p>
+            <SaleDocumentForm />
           </div>
         </div>
       </main>
