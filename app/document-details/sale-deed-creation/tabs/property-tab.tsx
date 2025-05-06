@@ -21,6 +21,10 @@ interface PropertyTabProps {
 }
 
 export function PropertyTab({ data, updateData }: PropertyTabProps) {
+  const [properties, setProperties] = useState<any[]>([])
+  const [selectedProperty, setSelectedProperty] = useState<any>(null)
+  const [isSearching, setIsSearching] = useState(false)
+
   const [formValues, setFormValues] = useState({
     propertyType: data.propertyType || "",
     propertyAddress: data.propertyAddress || "",
@@ -35,6 +39,11 @@ export function PropertyTab({ data, updateData }: PropertyTabProps) {
     siteDetails: data.siteDetails || [],
     buildingDetails: data.buildingDetails || [],
     otherDetails: data.otherDetails || [],
+    registrationDistrictId: data.registrationDistrictId || "",
+    subRegistrarOfficeId: data.subRegistrarOfficeId || "",
+    districtId: data.districtId || "",
+    talukId: data.talukId || "",
+    villageId: data.villageId || "",
   })
 
   const [propertyTypes, setPropertyTypes] = useState<any[]>([])
@@ -44,6 +53,14 @@ export function PropertyTab({ data, updateData }: PropertyTabProps) {
   const [showOtherDetailsForm, setShowOtherDetailsForm] = useState(false)
   const [editingSiteIndex, setEditingSiteIndex] = useState<number | null>(null)
   const [editingBuildingIndex, setEditingBuildingIndex] = useState<number | null>(null)
+  const [registrationDistricts, setRegistrationDistricts] = useState<any[]>([])
+  const [subRegistrarOffices, setSubRegistrarOffices] = useState<any[]>([])
+  const [districts, setDistricts] = useState<any[]>([])
+  const [taluks, setTaluks] = useState<any[]>([])
+  const [villages, setVillages] = useState<any[]>([])
+  const [filteredSubRegistrarOffices, setFilteredSubRegistrarOffices] = useState<any[]>([])
+  const [filteredTaluks, setFilteredTaluks] = useState<any[]>([])
+  const [filteredVillages, setFilteredVillages] = useState<any[]>([])
 
   const supabase = getSupabaseBrowserClient()
 
@@ -53,6 +70,27 @@ export function PropertyTab({ data, updateData }: PropertyTabProps) {
         setLoading(true)
         const { data: typesData } = await supabase.from("land_types").select("id, name").order("name")
         if (typesData) setPropertyTypes(typesData)
+
+        const { data: registrationDistrictsData } = await supabase
+          .from("registration_districts")
+          .select("id, name")
+          .order("name")
+        if (registrationDistrictsData) setRegistrationDistricts(registrationDistrictsData)
+
+        const { data: subRegistrarOfficesData } = await supabase
+          .from("sub_registrar_offices")
+          .select("id, name, registration_district_id")
+          .order("name")
+        if (subRegistrarOfficesData) setSubRegistrarOffices(subRegistrarOfficesData)
+
+        const { data: districtsData } = await supabase.from("districts").select("id, name").order("name")
+        if (districtsData) setDistricts(districtsData)
+
+        const { data: taluksData } = await supabase.from("taluks").select("id, name, district_id").order("name")
+        if (taluksData) setTaluks(taluksData)
+
+        const { data: villagesData } = await supabase.from("villages").select("id, name, taluk_id").order("name")
+        if (villagesData) setVillages(villagesData)
       } catch (error) {
         console.error("Error fetching property types:", error)
       } finally {
@@ -62,6 +100,35 @@ export function PropertyTab({ data, updateData }: PropertyTabProps) {
 
     fetchPropertyTypes()
   }, [supabase])
+
+  useEffect(() => {
+    if (formValues.registrationDistrictId && formValues.registrationDistrictId !== "all") {
+      const filtered = subRegistrarOffices.filter(
+        (office) => office.registration_district_id === Number.parseInt(formValues.registrationDistrictId),
+      )
+      setFilteredSubRegistrarOffices(filtered)
+    } else {
+      setFilteredSubRegistrarOffices([])
+    }
+  }, [formValues.registrationDistrictId, subRegistrarOffices])
+
+  useEffect(() => {
+    if (formValues.districtId && formValues.districtId !== "all") {
+      const filtered = taluks.filter((taluk) => taluk.district_id === Number.parseInt(formValues.districtId))
+      setFilteredTaluks(filtered)
+    } else {
+      setFilteredTaluks([])
+    }
+  }, [formValues.districtId, taluks])
+
+  useEffect(() => {
+    if (formValues.talukId && formValues.talukId !== "all") {
+      const filtered = villages.filter((village) => village.taluk_id === Number.parseInt(formValues.talukId))
+      setFilteredVillages(filtered)
+    } else {
+      setFilteredVillages([])
+    }
+  }, [formValues.talukId, villages])
 
   const handleChange = (field: string, value: string) => {
     const newValues = { ...formValues, [field]: value }
@@ -133,6 +200,85 @@ export function PropertyTab({ data, updateData }: PropertyTabProps) {
     const newValues = { ...formValues, buildingDetails: updatedBuildings }
     setFormValues(newValues)
     updateData(newValues)
+  }
+
+  const handleSearchProperties = async () => {
+    try {
+      setIsSearching(true)
+
+      // Build query based on selected filters
+      let query = supabase.from("properties").select(`
+        *,
+        registration_districts:registration_district_id (name),
+        sub_registrar_offices:sub_registrar_office_id (name),
+        districts:district_id (name),
+        taluks:taluk_id (name),
+        villages:village_id (name)
+      `)
+
+      // Add filters if selected
+      if (formValues.registrationDistrictId && formValues.registrationDistrictId !== "all") {
+        query = query.eq("registration_district_id", Number.parseInt(formValues.registrationDistrictId))
+      }
+
+      if (formValues.subRegistrarOfficeId && formValues.subRegistrarOfficeId !== "all") {
+        query = query.eq("sub_registrar_office_id", Number.parseInt(formValues.subRegistrarOfficeId))
+      }
+
+      if (formValues.districtId && formValues.districtId !== "all") {
+        query = query.eq("district_id", Number.parseInt(formValues.districtId))
+      }
+
+      if (formValues.talukId && formValues.talukId !== "all") {
+        query = query.eq("taluk_id", Number.parseInt(formValues.talukId))
+      }
+
+      if (formValues.villageId && formValues.villageId !== "all") {
+        query = query.eq("village_id", Number.parseInt(formValues.villageId))
+      }
+
+      const { data, error } = await query.order("property_name")
+
+      if (error) throw error
+
+      const formattedData =
+        data?.map((property) => ({
+          ...property,
+          registration_district_name: property.registration_districts?.name,
+          sub_registrar_office_name: property.sub_registrar_offices?.name,
+          district_name: property.districts?.name,
+          taluk_name: property.taluks?.name,
+          village_name: property.villages?.name,
+        })) || []
+
+      setProperties(formattedData)
+    } catch (error: any) {
+      console.error("Error fetching properties:", error)
+    } finally {
+      setIsSearching(false)
+    }
+  }
+
+  const handleSelectProperty = (property: any) => {
+    setSelectedProperty(property)
+  }
+
+  const handleAddAllToDescription = () => {
+    if (!selectedProperty) return
+
+    const propertyDetails = `
+சொத்து பெயர்: ${selectedProperty.property_name || ""}
+சர்வே எண்: ${selectedProperty.survey_number || ""}
+பதிவு மாவட்டம்: ${selectedProperty.registration_district_name || ""}
+சார்பதிவாளர் அலுவலகம்: ${selectedProperty.sub_registrar_office_name || ""}
+மாவட்டம்: ${selectedProperty.district_name || ""}
+வட்டம்: ${selectedProperty.taluk_name || ""}
+கிராமம்: ${selectedProperty.village_name || ""}
+வழிகாட்டு மதிப்பு (சதுர மீட்டர்): ${selectedProperty.guide_value_sqm || ""}
+வழிகாட்டு மதிப்பு (சதுர அடி): ${selectedProperty.guide_value_sqft || ""}
+  `.trim()
+
+    handleChange("propertyDescription", propertyDetails)
   }
 
   return (
@@ -346,176 +492,227 @@ export function PropertyTab({ data, updateData }: PropertyTabProps) {
         )}
 
         {formValues.propertySelectionType === "existing" && (
-          <>
-            <Card className="p-4 border-purple-200">
-              <div className="mb-4">
-                <h4 className="text-md font-medium text-purple-700 mb-3">சொத்து தேடல் (Property Search)</h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <Label htmlFor="registration-district" className="text-purple-700">
-                      பதிவு மாவட்டம் (Registration District)
-                    </Label>
-                    <Select>
-                      <SelectTrigger
-                        id="registration-district"
-                        className="mt-1 border-purple-200 focus-visible:ring-purple-400"
-                      >
-                        <SelectValue placeholder="ஈரோடு" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="erode">ஈரோடு</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="sub-register-office" className="text-purple-700">
-                      சார்பதிவாளர் அலுவலகம் (Sub Register Office)
-                    </Label>
-                    <Select>
-                      <SelectTrigger
-                        id="sub-register-office"
-                        className="mt-1 border-purple-200 focus-visible:ring-purple-400"
-                      >
-                        <SelectValue placeholder="சார்பதிவாளர் அலுவலகத்தைத் தேர்ந்தெடுக்கவும்" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="office1">அலுவலகம் 1</SelectItem>
-                        <SelectItem value="office2">அலுவலகம் 2</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="district" className="text-purple-700">
-                      மாவட்டம் (District)
-                    </Label>
-                    <Select>
-                      <SelectTrigger id="district" className="mt-1 border-purple-200 focus-visible:ring-purple-400">
-                        <SelectValue placeholder="மாவட்டத்தைத் தேர்ந்தெடுக்கவும்" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="district1">மாவட்டம் 1</SelectItem>
-                        <SelectItem value="district2">மாவட்டம் 2</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="taluk" className="text-purple-700">
-                      வட்டம் (Taluk)
-                    </Label>
-                    <Select>
-                      <SelectTrigger id="taluk" className="mt-1 border-purple-200 focus-visible:ring-purple-400">
-                        <SelectValue placeholder="வட்டத்தைத் தேர்ந்தெடுக்கவும்" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="taluk1">வட்டம் 1</SelectItem>
-                        <SelectItem value="taluk2">வட்டம் 2</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="village" className="text-purple-700">
-                      கிராமம் (Village)
-                    </Label>
-                    <Select>
-                      <SelectTrigger id="village" className="mt-1 border-purple-200 focus-visible:ring-purple-400">
-                        <SelectValue placeholder="கிராமத்தைத் தேர்ந்தெடுக்கவும்" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="village1">கிராமம் 1</SelectItem>
-                        <SelectItem value="village2">கிராமம் 2</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="land-type" className="text-purple-700">
-                      நில வகை (Land Type)
-                    </Label>
-                    <Select>
-                      <SelectTrigger id="land-type" className="mt-1 border-purple-200 focus-visible:ring-purple-400">
-                        <SelectValue placeholder="நில வகையைத் தேர்ந்தெடுக்கவும்" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="land1">நில வகை 1</SelectItem>
-                        <SelectItem value="land2">நில வகை 2</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+          <Card className="p-4 border-purple-200">
+            <div className="mb-4">
+              <h4 className="text-md font-medium text-purple-700 mb-3">சொத்து தேடல் (Property Search)</h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="registration-district" className="text-purple-700">
+                    பதிவு மாவட்டம் (Registration District)
+                  </Label>
+                  <Select
+                    value={formValues.registrationDistrictId}
+                    onValueChange={(value) => handleChange("registrationDistrictId", value)}
+                  >
+                    <SelectTrigger
+                      id="registration-district"
+                      className="mt-1 border-purple-200 focus-visible:ring-purple-400"
+                    >
+                      <SelectValue placeholder="பதிவு மாவட்டத்தைத் தேர்ந்தெடுக்கவும்" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">அனைத்தும்</SelectItem>
+                      {registrationDistricts.map((district) => (
+                        <SelectItem key={district.id} value={district.id.toString()}>
+                          {district.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-
-                <div className="mt-4">
-                  <Button className="w-full bg-purple-600 hover:bg-purple-700">
-                    <MapPin className="h-4 w-4 mr-2" /> சொத்துகளைத் தேடு (Search Properties)
-                  </Button>
+                <div>
+                  <Label htmlFor="sub-register-office" className="text-purple-700">
+                    சார்பதிவாளர் அலுவலகம் (Sub Register Office)
+                  </Label>
+                  <Select
+                    value={formValues.subRegistrarOfficeId}
+                    onValueChange={(value) => handleChange("subRegistrarOfficeId", value)}
+                    disabled={!formValues.registrationDistrictId || formValues.registrationDistrictId === "all"}
+                  >
+                    <SelectTrigger
+                      id="sub-register-office"
+                      className="mt-1 border-purple-200 focus-visible:ring-purple-400"
+                    >
+                      <SelectValue placeholder="சார்பதிவாளர் அலுவலகத்தைத் தேர்ந்தெடுக்கவும்" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">அனைத்தும்</SelectItem>
+                      {filteredSubRegistrarOffices.map((office) => (
+                        <SelectItem key={office.id} value={office.id.toString()}>
+                          {office.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
+                <div>
+                  <Label htmlFor="district" className="text-purple-700">
+                    மாவட்டம் (District)
+                  </Label>
+                  <Select value={formValues.districtId} onValueChange={(value) => handleChange("districtId", value)}>
+                    <SelectTrigger id="district" className="mt-1 border-purple-200 focus-visible:ring-purple-400">
+                      <SelectValue placeholder="மாவட்டத்தைத் தேர்ந்தெடுக்கவும்" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">அனைத்தும்</SelectItem>
+                      {districts.map((district) => (
+                        <SelectItem key={district.id} value={district.id.toString()}>
+                          {district.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="taluk" className="text-purple-700">
+                    வட்டம் (Taluk)
+                  </Label>
+                  <Select
+                    value={formValues.talukId}
+                    onValueChange={(value) => handleChange("talukId", value)}
+                    disabled={!formValues.districtId || formValues.districtId === "all"}
+                  >
+                    <SelectTrigger id="taluk" className="mt-1 border-purple-200 focus-visible:ring-purple-400">
+                      <SelectValue placeholder="வட்டத்தைத் தேர்ந்தெடுக்கவும்" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">அனைத்தும்</SelectItem>
+                      {filteredTaluks.map((taluk) => (
+                        <SelectItem key={taluk.id} value={taluk.id.toString()}>
+                          {taluk.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="village" className="text-purple-700">
+                    கிராமம் (Village)
+                  </Label>
+                  <Select
+                    value={formValues.villageId}
+                    onValueChange={(value) => handleChange("villageId", value)}
+                    disabled={!formValues.talukId || formValues.talukId === "all"}
+                  >
+                    <SelectTrigger id="village" className="mt-1 border-purple-200 focus-visible:ring-purple-400">
+                      <SelectValue placeholder="கிராமத்தைத் தேர்ந்தெடுக்கவும்" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">அனைத்தும்</SelectItem>
+                      {filteredVillages.map((village) => (
+                        <SelectItem key={village.id} value={village.id.toString()}>
+                          {village.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="land-type" className="text-purple-700">
+                    நில வகை (Land Type)
+                  </Label>
+                  <Select>
+                    <SelectTrigger id="land-type" className="mt-1 border-purple-200 focus-visible:ring-purple-400">
+                      <SelectValue placeholder="நில வகையைத் தேர்ந்தெடுக்கவும்" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">அனைத்தும்</SelectItem>
+                      {propertyTypes.map((type) => (
+                        <SelectItem key={type.id} value={type.id.toString()}>
+                          {type.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
 
-                <div className="mt-6">
-                  <h5 className="text-md font-medium text-purple-700 mb-2">தேடல் முடிவுகள் (Search Results)</h5>
-                  <div className="border rounded-md overflow-hidden">
-                    <table className="w-full">
-                      <thead className="bg-purple-50">
-                        <tr>
-                          <th className="px-4 py-2 text-left text-purple-700">சொத்து பெயர் (Property Name)</th>
-                          <th className="px-4 py-2 text-left text-purple-700">இடம் (Location)</th>
-                          <th className="px-4 py-2 text-left text-purple-700">சர்வே எண் (Survey No)</th>
-                          <th className="px-4 py-2 text-left text-purple-700"></th>
-                        </tr>
-                      </thead>
-                      <tbody>
+              <div className="mt-4">
+                <Button
+                  className="w-full bg-purple-600 hover:bg-purple-700"
+                  onClick={handleSearchProperties}
+                  disabled={isSearching}
+                >
+                  <MapPin className="h-4 w-4 mr-2" />
+                  {isSearching ? "தேடுகிறது..." : "சொத்துகளைத் தேடு (Search Properties)"}
+                </Button>
+              </div>
+
+              <div className="mt-6">
+                <div className="flex justify-between items-center mb-2">
+                  <h5 className="text-md font-medium text-purple-700">தேடல் முடிவுகள் (Search Results)</h5>
+                  {selectedProperty && (
+                    <Button onClick={handleAddAllToDescription} className="bg-green-600 hover:bg-green-700" size="sm">
+                      <Plus className="h-4 w-4 mr-2" /> அனைத்து விவரங்களையும் சேர்க்க
+                    </Button>
+                  )}
+                </div>
+                <div className="border rounded-md overflow-hidden">
+                  <table className="w-full">
+                    <thead className="bg-purple-50">
+                      <tr>
+                        <th className="px-4 py-2 text-left text-purple-700">சொத்து பெயர் (Property Name)</th>
+                        <th className="px-4 py-2 text-left text-purple-700">இடம் (Location)</th>
+                        <th className="px-4 py-2 text-left text-purple-700">சர்வே எண் (Survey No)</th>
+                        <th className="px-4 py-2 text-left text-purple-700"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {properties.length === 0 ? (
                         <tr className="border-t">
-                          <td className="px-4 py-2">சக்தி நகர் குடியிருப்பு மனை</td>
-                          <td className="px-4 py-2">சக்தி நகர், ஈரோடு, ஈரோடு</td>
-                          <td className="px-4 py-2">567/E</td>
-                          <td className="px-4 py-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-8 px-2 text-blue-600 border-blue-200 hover:bg-blue-50"
-                            >
-                              தேர்ந்தெடு (Select)
-                            </Button>
+                          <td colSpan={4} className="px-4 py-4 text-center text-gray-500">
+                            {isSearching ? "தேடுகிறது..." : "சொத்துகள் எதுவும் கிடைக்கவில்லை. தேடலைத் தொடங்கவும்."}
                           </td>
                         </tr>
-                      </tbody>
-                    </table>
-                  </div>
+                      ) : (
+                        properties.map((property) => (
+                          <tr
+                            key={property.id}
+                            className={`border-t ${selectedProperty?.id === property.id ? "bg-purple-50" : ""}`}
+                          >
+                            <td className="px-4 py-2">{property.property_name}</td>
+                            <td className="px-4 py-2">
+                              {[property.village_name, property.taluk_name, property.district_name]
+                                .filter(Boolean)
+                                .join(", ")}
+                            </td>
+                            <td className="px-4 py-2">{property.survey_number}</td>
+                            <td className="px-4 py-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleSelectProperty(property)}
+                                className={`h-8 px-2 ${
+                                  selectedProperty?.id === property.id
+                                    ? "bg-purple-100 text-purple-700 border-purple-300"
+                                    : "text-blue-600 border-blue-200 hover:bg-blue-50"
+                                }`}
+                              >
+                                {selectedProperty?.id === property.id ? "தேர்ந்தெடுக்கப்பட்டது" : "தேர்ந்தெடு (Select)"}
+                              </Button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </div>
+            </div>
 
-              <div className="mt-6">
-                <Label htmlFor="property-description" className="text-purple-700">
-                  சொத்து விவரம் (Property Description)
-                </Label>
-                <Textarea
-                  id="property-description"
-                  placeholder="சொத்து விளக்கத்தை உள்ளிடவும்"
-                  value={formValues.propertyDescription}
-                  onChange={(e) => handleChange("propertyDescription", e.target.value)}
-                  className="mt-1 border-purple-200 focus-visible:ring-purple-400 h-32"
-                />
-              </div>
-
-              <div className="mt-6">
-                <div className="flex items-center space-x-2">
-                  <h4 className="text-md font-medium text-purple-700">
-                    இந்த ஆவணத்தின் மொத்த மதிப்பு (Total Value of this Deed)
-                  </h4>
-                  <div className="flex items-center ml-auto">
-                    <input type="radio" id="manual-edit" name="value-edit" className="mr-2" />
-                    <label htmlFor="manual-edit" className="text-sm text-purple-700">
-                      கைமுறையாக திருத்த (Manual Edit)
-                    </label>
-                  </div>
-                </div>
-                <div className="flex items-center mt-2">
-                  <Input value="0.00" className="border-purple-200 focus-visible:ring-purple-400" readOnly />
-                  <Button variant="outline" className="ml-2 border-purple-300 text-purple-700">
-                    மீண்டும் கணக்கிடு (Recalculate)
-                  </Button>
-                </div>
-                <p className="text-xs text-gray-500 mt-1">தானாக கணக்கிடப்பட்ட மதிப்பு (Automatically calculated value)</p>
-              </div>
-            </Card>
-          </>
+            <div className="mt-6">
+              <Label htmlFor="property-description" className="text-purple-700">
+                சொத்து விவரம் (Property Description)
+              </Label>
+              <Textarea
+                id="property-description"
+                placeholder="சொத்து விளக்கத்தை உள்ளிடவும்"
+                value={formValues.propertyDescription}
+                onChange={(e) => handleChange("propertyDescription", e.target.value)}
+                className="mt-1 border-purple-200 focus-visible:ring-purple-400 h-32"
+              />
+            </div>
+          </Card>
         )}
 
         {formValues.propertySelectionType === "other" && (
