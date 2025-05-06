@@ -59,11 +59,11 @@
     "vaul": "^0.9.6",
     "zod": "latest",
     "@tanstack/react-table": "latest",
-    "@supabase/supabase-js": "latest",
     "uuid": "latest",
     "html2canvas": "latest",
     "jspdf": "latest",
-    "react-to-print": "latest"
+    "react-to-print": "latest",
+    "@supabase/supabase-js": "latest"
   },
   "devDependencies": {
     "@types/node": "^22",

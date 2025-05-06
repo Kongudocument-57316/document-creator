@@ -10,17 +10,32 @@ export const createServerSupabaseClient = () => {
 
 // கிளையன்ட் பக்க சுபாபேஸ் கிளையன்ட்
 export const createBrowserSupabaseClient = () => {
-  return createClient(supabaseUrl, supabaseAnonKey)
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  if (!url || !key) {
+    console.error("Supabase URL or Anon Key is missing")
+    // Return a placeholder client or throw a more informative error
+    throw new Error("Supabase configuration is incomplete. Please check your environment variables.")
+  }
+
+  return createClient(url, key)
 }
 
 // சிங்கிள்டன் பேட்டர்ன் பயன்படுத்தி கிளையன்ட் பக்க சுபாபேஸ் கிளையன்ட்
 let browserClient: ReturnType<typeof createBrowserSupabaseClient> | undefined
 
 export function getSupabaseBrowserClient() {
-  if (browserClient === undefined) {
-    browserClient = createBrowserSupabaseClient()
+  try {
+    if (browserClient === undefined) {
+      browserClient = createBrowserSupabaseClient()
+    }
+    return browserClient
+  } catch (error) {
+    console.error("Failed to initialize Supabase client:", error)
+    // Return a dummy client or handle the error appropriately
+    throw error
   }
-  return browserClient
 }
 
 export function getSupabaseServerClient() {

@@ -17,24 +17,40 @@ export function DocumentEditorWrapper() {
   const [documentTitle, setDocumentTitle] = useState("")
   const [documentContent, setDocumentContent] = useState("")
   const [isLoading, setIsLoading] = useState(false)
-  const supabase = getSupabaseBrowserClient()
+  const [supabase, setSupabase] = useState(() => {
+    try {
+      return getSupabaseBrowserClient()
+    } catch (error) {
+      console.error("Failed to initialize Supabase client:", error)
+      return null
+    }
+  })
 
   useEffect(() => {
     // Initialize document templates and storage bucket
     const initialize = async () => {
       try {
+        // Check if Supabase environment variables exist
+        if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+          throw new Error("Supabase environment variables are not configured properly")
+        }
+
         // Ensure document templates exist
         await ensureDocumentTemplatesExist()
 
+        // Get the Supabase client safely
+        const supabaseClient = getSupabaseBrowserClient()
+
         // Initialize storage bucket
-        const { data: buckets } = await supabase.storage.listBuckets()
+        const { data: buckets } = await supabaseClient.storage.listBuckets()
         if (!buckets?.find((bucket) => bucket.name === "document-assets")) {
-          await supabase.storage.createBucket("document-assets", {
+          await supabaseClient.storage.createBucket("document-assets", {
             public: true,
           })
         }
       } catch (error) {
         console.error("Error initializing:", error)
+        toast.error(`ஆரம்பமாக்குவதில் பிழை: ${error instanceof Error ? error.message : "Unknown error"}`)
       }
     }
 
@@ -44,6 +60,11 @@ export function DocumentEditorWrapper() {
   const handleSaveDocument = async () => {
     if (!documentTitle.trim()) {
       toast.error("ஆவணத்திற்கு தலைப்பு தேவை")
+      return
+    }
+
+    if (!supabase) {
+      toast.error("Supabase சேவையை அணுக முடியவில்லை. மீண்டும் முயற்சிக்கவும்.")
       return
     }
 
