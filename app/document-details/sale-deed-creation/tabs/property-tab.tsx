@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -14,7 +14,6 @@ import { SiteDetailsForm } from "../components/site-details-form"
 import { BuildingDetailsForm } from "../components/building-details-form"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Checkbox } from "@/components/ui/checkbox"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 
 interface PropertyTabProps {
   data: any
@@ -26,6 +25,7 @@ export function PropertyTab({ data, updateData }: PropertyTabProps) {
   const [selectedProperty, setSelectedProperty] = useState<any>(null)
   const [isSearching, setIsSearching] = useState(false)
   const [isManualEdit, setIsManualEdit] = useState(false)
+  const initialRender = useRef(true)
 
   const [formValues, setFormValues] = useState({
     propertyType: data.propertyType || "",
@@ -51,6 +51,7 @@ export function PropertyTab({ data, updateData }: PropertyTabProps) {
     districtId: data.districtId || "",
     talukId: data.talukId || "",
     villageId: data.villageId || "",
+    selectedPropertyId: data.selectedPropertyId || null,
   })
 
   const [propertyTypes, setPropertyTypes] = useState<any[]>([])
@@ -108,6 +109,31 @@ export function PropertyTab({ data, updateData }: PropertyTabProps) {
     fetchPropertyTypes()
   }, [supabase])
 
+  // Load selected property if ID exists
+  useEffect(() => {
+    if (formValues.selectedPropertyId && initialRender.current) {
+      initialRender.current = false
+      loadPropertyById(formValues.selectedPropertyId)
+    }
+  }, [formValues.selectedPropertyId])
+
+  // Update parent component when property value changes
+  useEffect(() => {
+    // Skip on initial render
+    if (initialRender.current) {
+      initialRender.current = false
+      return
+    }
+
+    // Only update if the value has actually changed
+    if (data.propertyValue !== formValues.propertyValue) {
+      updateData({
+        ...data,
+        propertyValue: formValues.propertyValue,
+      })
+    }
+  }, [formValues.propertyValue])
+
   useEffect(() => {
     if (formValues.registrationDistrictId && formValues.registrationDistrictId !== "all") {
       const filtered = subRegistrarOffices.filter(
@@ -140,14 +166,20 @@ export function PropertyTab({ data, updateData }: PropertyTabProps) {
   const handleChange = (field: string, value: string) => {
     const newValues = { ...formValues, [field]: value }
     setFormValues(newValues)
-    updateData(newValues)
+    updateData({
+      ...data,
+      [field]: value,
+    })
   }
 
   const handlePropertySelectionTypeChange = (type: string, checked: boolean) => {
     const newSelectionTypes = { ...formValues.propertySelectionTypes, [type]: checked }
     const newValues = { ...formValues, propertySelectionTypes: newSelectionTypes }
     setFormValues(newValues)
-    updateData(newValues)
+    updateData({
+      ...data,
+      propertySelectionTypes: newSelectionTypes,
+    })
   }
 
   const handleAddSite = (siteData: any) => {
@@ -164,7 +196,10 @@ export function PropertyTab({ data, updateData }: PropertyTabProps) {
 
     const newValues = { ...formValues, siteDetails: updatedSites }
     setFormValues(newValues)
-    updateData(newValues)
+    updateData({
+      ...data,
+      siteDetails: updatedSites,
+    })
     setShowSiteForm(false)
     setEditingSiteIndex(null)
   }
@@ -183,7 +218,10 @@ export function PropertyTab({ data, updateData }: PropertyTabProps) {
 
     const newValues = { ...formValues, buildingDetails: updatedBuildings }
     setFormValues(newValues)
-    updateData(newValues)
+    updateData({
+      ...data,
+      buildingDetails: updatedBuildings,
+    })
     setShowBuildingForm(false)
     setEditingBuildingIndex(null)
   }
@@ -202,14 +240,20 @@ export function PropertyTab({ data, updateData }: PropertyTabProps) {
     const updatedSites = formValues.siteDetails.filter((_, i) => i !== index)
     const newValues = { ...formValues, siteDetails: updatedSites }
     setFormValues(newValues)
-    updateData(newValues)
+    updateData({
+      ...data,
+      siteDetails: updatedSites,
+    })
   }
 
   const handleRemoveBuilding = (index: number) => {
     const updatedBuildings = formValues.buildingDetails.filter((_, i) => i !== index)
     const newValues = { ...formValues, buildingDetails: updatedBuildings }
     setFormValues(newValues)
-    updateData(newValues)
+    updateData({
+      ...data,
+      buildingDetails: updatedBuildings,
+    })
   }
 
   const handleSearchProperties = async () => {
@@ -269,8 +313,107 @@ export function PropertyTab({ data, updateData }: PropertyTabProps) {
     }
   }
 
+  const loadPropertyById = async (propertyId: number) => {
+    try {
+      setLoading(true)
+      const { data, error } = await supabase
+        .from("properties")
+        .select(`
+          *,
+          registration_districts:registration_district_id (name),
+          sub_registrar_offices:sub_registrar_office_id (name),
+          districts:district_id (name),
+          taluks:taluk_id (name),
+          villages:village_id (name)
+        `)
+        .eq("id", propertyId)
+        .single()
+
+      if (error) {
+        console.error("Error loading property:", error)
+        return
+      }
+
+      if (data) {
+        const formattedProperty = {
+          ...data,
+          registration_district_name: data.registration_districts?.name,
+          sub_registrar_office_name: data.sub_registrar_offices?.name,
+          district_name: data.districts?.name,
+          taluk_name: data.taluks?.name,
+          village_name: data.villages?.name,
+        }
+
+        setSelectedProperty(formattedProperty)
+
+        // Update form values with property data
+        setFormValues({
+          ...formValues,
+          propertyType: data.property_type || "",
+          propertyAddress: data.address || "",
+          propertyArea: data.area_sqft?.toString() || "",
+          propertyValue: data.guide_value_sqft?.toString() || "0.00",
+          registrationDistrictId: data.registration_district_id?.toString() || "",
+          subRegistrarOfficeId: data.sub_registrar_office_id?.toString() || "",
+          districtId: data.district_id?.toString() || "",
+          talukId: data.taluk_id?.toString() || "",
+          villageId: data.village_id?.toString() || "",
+        })
+
+        // Update parent component
+        updateData({
+          ...data,
+          propertyType: data.property_type || "",
+          propertyAddress: data.address || "",
+          propertyArea: data.area_sqft?.toString() || "",
+          propertyValue: data.guide_value_sqft?.toString() || "0.00",
+          registrationDistrictId: data.registration_district_id?.toString() || "",
+          subRegistrarOfficeId: data.sub_registrar_office_id?.toString() || "",
+          districtId: data.district_id?.toString() || "",
+          talukId: data.taluk_id?.toString() || "",
+          villageId: data.village_id?.toString() || "",
+          selectedPropertyId: propertyId,
+        })
+      }
+    } catch (error) {
+      console.error("Error loading property:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const handleSelectProperty = (property: any) => {
     setSelectedProperty(property)
+
+    // Update form values with selected property data
+    setFormValues({
+      ...formValues,
+      propertyType: property.property_type || "",
+      propertyAddress: property.address || "",
+      propertyArea: property.area_sqft?.toString() || "",
+      propertyValue: property.guide_value_sqft?.toString() || "0.00",
+      registrationDistrictId: property.registration_district_id?.toString() || "",
+      subRegistrarOfficeId: property.sub_registrar_office_id?.toString() || "",
+      districtId: property.district_id?.toString() || "",
+      talukId: property.taluk_id?.toString() || "",
+      villageId: property.village_id?.toString() || "",
+      selectedPropertyId: property.id,
+    })
+
+    // Update parent component
+    updateData({
+      ...data,
+      propertyType: property.property_type || "",
+      propertyAddress: property.address || "",
+      propertyArea: property.area_sqft?.toString() || "",
+      propertyValue: property.guide_value_sqft?.toString() || "0.00",
+      registrationDistrictId: property.registration_district_id?.toString() || "",
+      subRegistrarOfficeId: property.sub_registrar_office_id?.toString() || "",
+      districtId: property.district_id?.toString() || "",
+      talukId: property.taluk_id?.toString() || "",
+      villageId: property.village_id?.toString() || "",
+      selectedPropertyId: property.id,
+    })
   }
 
   const handleAddExistingToDescription = () => {
@@ -614,7 +757,6 @@ export function PropertyTab({ data, updateData }: PropertyTabProps) {
                       <tr>
                         <th className="px-4 py-2 text-left text-purple-700">சொத்து பெயர் (Property Name)</th>
                         <th className="px-4 py-2 text-left text-purple-700">இடம் (Location)</th>
-                        <th className="px-4 py-2 text-left text-purple-700">இடம் (Location)</th>
                         <th className="px-4 py-2 text-left text-purple-700">சர்வே எண் (Survey No)</th>
                         <th className="px-4 py-2 text-left text-purple-700"></th>
                       </tr>
@@ -909,18 +1051,18 @@ export function PropertyTab({ data, updateData }: PropertyTabProps) {
           <div className="flex items-center justify-between">
             <h4 className="text-md font-medium text-purple-700">இந்த ஆவணத்தின் மொத்த மதிப்பு (Total Value of this Deed)</h4>
             <div className="flex items-center">
-              <RadioGroup
-                value={isManualEdit ? "manual" : "auto"}
-                onValueChange={(value) => setIsManualEdit(value === "manual")}
-                className="flex items-center space-x-2"
-              >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="manual" id="manual-edit" />
-                  <Label htmlFor="manual-edit" className="text-sm text-purple-700">
-                    கைமுறையாக திருத்த (Manual Edit)
-                  </Label>
-                </div>
-              </RadioGroup>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="manual-edit-property"
+                  checked={isManualEdit}
+                  onChange={(e) => setIsManualEdit(e.target.checked)}
+                  className="rounded text-purple-600 focus:ring-purple-500"
+                />
+                <Label htmlFor="manual-edit-property" className="text-sm text-purple-700">
+                  கைமுறையாக திருத்த (Manual Edit)
+                </Label>
+              </div>
             </div>
           </div>
           <div className="flex items-center mt-2">

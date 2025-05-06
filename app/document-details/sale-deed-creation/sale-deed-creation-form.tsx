@@ -12,7 +12,7 @@ import { WitnessTab } from "./tabs/witness-tab"
 import { PaymentTab } from "./tabs/payment-tab"
 import { DeedTab } from "./tabs/deed-tab"
 import { useRouter } from "next/navigation"
-import { Home, ArrowLeft, Save, ArrowRight, Loader2, AlertCircle } from "lucide-react"
+import { Home, ArrowLeft, Save, ArrowRight, Loader2, AlertCircle, Printer, Eye } from "lucide-react"
 import { SimplePdfGenerator } from "./simple-pdf-generator"
 import { PreviewDialog } from "./components/preview-dialog"
 import { saveSaleDeed } from "./actions"
@@ -41,10 +41,25 @@ export function SaleDeedCreationForm() {
   })
 
   const updateFormData = (section: string, data: any) => {
-    setFormData((prev) => ({
-      ...prev,
-      [section]: data,
-    }))
+    setFormData((prev) => {
+      const newFormData = {
+        ...prev,
+        [section]: data,
+      }
+
+      // If property value is updated, pass it to payment section
+      if (section === "property" && data.propertyValue && prev.payment) {
+        return {
+          ...newFormData,
+          payment: {
+            ...prev.payment,
+            propertyValue: data.propertyValue,
+          },
+        }
+      }
+
+      return newFormData
+    })
 
     // Clear validation errors for this section when data is updated
     if (validationErrors[section]) {
@@ -184,7 +199,7 @@ export function SaleDeedCreationForm() {
         <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
           <div className="overflow-x-auto pb-2">
             <TabsList className="w-full grid-cols-7 mb-6 bg-purple-50 p-1">
-              {tabs.map((tab) => (
+              {tabs.map((tab, index) => (
                 <TabsTrigger
                   key={tab.id}
                   value={tab.id}
@@ -192,7 +207,39 @@ export function SaleDeedCreationForm() {
                     hasTabErrors(tab.id) ? "relative" : ""
                   }`}
                 >
-                  {tab.label}
+                  <div className="flex items-center">
+                    {index > 0 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-5 w-5 p-0 mr-1 text-purple-600 hover:bg-purple-100 hover:text-purple-800"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          const prevIndex = index - 1
+                          setActiveTab(tabs[prevIndex].id)
+                        }}
+                      >
+                        <ArrowLeft className="h-3 w-3" />
+                        <span className="sr-only">முந்தைய</span>
+                      </Button>
+                    )}
+                    <span>{tab.label}</span>
+                    {index < tabs.length - 1 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-5 w-5 p-0 ml-1 text-purple-600 hover:bg-purple-100 hover:text-purple-800"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          const nextIndex = index + 1
+                          setActiveTab(tabs[nextIndex].id)
+                        }}
+                      >
+                        <ArrowRight className="h-3 w-3" />
+                        <span className="sr-only">அடுத்து</span>
+                      </Button>
+                    )}
+                  </div>
                   {hasTabErrors(tab.id) && (
                     <span className="absolute -top-1 -right-1 flex h-3 w-3">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
@@ -202,52 +249,6 @@ export function SaleDeedCreationForm() {
                 </TabsTrigger>
               ))}
             </TabsList>
-          </div>
-
-          {/* Navigation buttons above tab content */}
-          <div className="flex justify-between mb-4">
-            <Button
-              variant="outline"
-              onClick={goToPreviousTab}
-              disabled={activeTab === "deed"}
-              className="border-purple-300 hover:bg-purple-50 text-purple-700"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              முந்தைய
-            </Button>
-
-            <div className="flex space-x-2">
-              <Button
-                variant="outline"
-                onClick={handleSave}
-                disabled={isSaving}
-                className="border-purple-300 hover:bg-purple-50 text-purple-700"
-              >
-                {isSaving ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    சேமிக்கிறது...
-                  </>
-                ) : (
-                  <>
-                    <Save className="h-4 w-4 mr-2" />
-                    சேமி
-                  </>
-                )}
-              </Button>
-
-              <PreviewDialog formData={formData} />
-              <SimplePdfGenerator formData={formData} title="கிரைய ஆவணம்" />
-            </div>
-
-            <Button
-              onClick={goToNextTab}
-              disabled={activeTab === "previous-doc"}
-              className="bg-purple-600 hover:bg-purple-700"
-            >
-              அடுத்து
-              <ArrowRight className="h-4 w-4 ml-2" />
-            </Button>
           </div>
 
           {/* Show validation errors for current tab */}
@@ -286,7 +287,15 @@ export function SaleDeedCreationForm() {
           </TabsContent>
 
           <TabsContent value="payment" className="mt-2 bg-purple-50 p-6 rounded-lg">
-            <PaymentTab data={formData.payment} updateData={(data) => updateFormData("payment", data)} />
+            <PaymentTab
+              data={{
+                ...formData.payment,
+                buyers: formData.buyer,
+                sellers: formData.seller,
+                propertyValue: formData.property?.propertyValue,
+              }}
+              updateData={(data) => updateFormData("payment", data)}
+            />
           </TabsContent>
 
           <TabsContent value="previous-doc" className="mt-2 bg-purple-50 p-6 rounded-lg">
@@ -296,6 +305,63 @@ export function SaleDeedCreationForm() {
               sellers={formData.seller || []}
             />
           </TabsContent>
+
+          {/* Navigation and action buttons below tab content */}
+          <div className="flex flex-col md:flex-row justify-between mt-6 gap-4">
+            <Button
+              variant="outline"
+              onClick={goToPreviousTab}
+              disabled={activeTab === "deed"}
+              className="border-purple-300 hover:bg-purple-50 text-purple-700"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              முந்தைய பக்கம்
+            </Button>
+
+            <div className="flex flex-wrap justify-center gap-2">
+              <Button
+                variant="outline"
+                onClick={handleSave}
+                disabled={isSaving}
+                className="border-purple-300 hover:bg-purple-50 text-purple-700"
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    சேமிக்கிறது...
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4 mr-2" />
+                    சேமி
+                  </>
+                )}
+              </Button>
+
+              <PreviewDialog formData={formData}>
+                <Button variant="outline" className="border-purple-300 hover:bg-purple-50 text-purple-700">
+                  <Eye className="h-4 w-4 mr-2" />
+                  முன்னோட்டம்
+                </Button>
+              </PreviewDialog>
+
+              <SimplePdfGenerator formData={formData} title="கிரைய ஆவணம்">
+                <Button variant="outline" className="border-purple-300 hover:bg-purple-50 text-purple-700">
+                  <Printer className="h-4 w-4 mr-2" />
+                  அச்சிடு
+                </Button>
+              </SimplePdfGenerator>
+            </div>
+
+            <Button
+              onClick={goToNextTab}
+              disabled={activeTab === "previous-doc"}
+              className="bg-purple-600 hover:bg-purple-700"
+            >
+              அடுத்த பக்கம்
+              <ArrowRight className="h-4 w-4 ml-2" />
+            </Button>
+          </div>
         </Tabs>
       </Card>
 

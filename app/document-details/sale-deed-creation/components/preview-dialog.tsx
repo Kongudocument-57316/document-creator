@@ -1,5 +1,8 @@
 "use client"
 
+import type React from "react"
+
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -9,31 +12,35 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { FileText } from "lucide-react"
+import { Eye } from "lucide-react"
 import { DocumentPreview } from "./document-preview"
-import { useState } from "react"
 
 interface PreviewDialogProps {
   formData: any
+  children?: React.ReactNode
 }
 
-export function PreviewDialog({ formData }: PreviewDialogProps) {
+export function PreviewDialog({ formData, children }: PreviewDialogProps) {
   const [open, setOpen] = useState(false)
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="bg-purple-600 hover:bg-purple-700">
-          <FileText className="h-4 w-4 mr-2" />
-          ஆவணத்தை முன்னோட்டம் காண் (Preview)
-        </Button>
+        {children || (
+          <Button variant="outline" className="border-purple-300 hover:bg-purple-50 text-purple-700">
+            <Eye className="h-4 w-4 mr-2" />
+            முன்னோட்டம்
+          </Button>
+        )}
       </DialogTrigger>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-xl text-purple-800">ஆவண முன்னோட்டம் (Document Preview)</DialogTitle>
-          <DialogDescription>இது உங்கள் ஆவணத்தின் முன்னோட்டம். அச்சிடுவதற்கு முன் சரிபார்க்கவும்.</DialogDescription>
+          <DialogTitle>கிரைய பத்திர முன்னோட்டம்</DialogTitle>
+          <DialogDescription>இது உங்கள் கிரைய பத்திரத்தின் முன்னோட்டம். அச்சிடுவதற்கு முன் சரிபார்க்கவும்.</DialogDescription>
         </DialogHeader>
-        <DocumentPreview formData={formData} />
+        <div className="mt-4">
+          <DocumentPreview formData={formData} />
+        </div>
       </DialogContent>
     </Dialog>
   )

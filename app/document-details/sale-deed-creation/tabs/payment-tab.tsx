@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -9,9 +9,9 @@ import { Separator } from "@/components/ui/separator"
 import { Card } from "@/components/ui/card"
 import { CreditCard, Calendar, DollarSign, Plus, Trash2, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { RequiredFieldLabel } from "../components/required-field-label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { convertNumberToWords } from "@/lib/number-to-tamil-words"
 
 interface PaymentTabProps {
   data: any
@@ -23,6 +23,8 @@ export function PaymentTab({ data, updateData, errors = [] }: PaymentTabProps) {
   const [paymentMethods, setPaymentMethods] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const supabase = getSupabaseBrowserClient()
+  const initialRender = useRef(true)
+  const propertyValueRef = useRef(data.propertyValue)
 
   const [formValues, setFormValues] = useState({
     totalAmount: data.totalAmount || "",
@@ -70,6 +72,36 @@ export function PaymentTab({ data, updateData, errors = [] }: PaymentTabProps) {
     fetchPaymentMethods()
   }, [supabase])
 
+  // Auto-populate total amount from property value
+  useEffect(() => {
+    // Skip on initial render to avoid conflicts with existing data
+    if (initialRender.current) {
+      initialRender.current = false
+      return
+    }
+
+    // Only update if property value has changed and we're not in manual edit mode
+    if (data.propertyValue !== propertyValueRef.current && !formValues.isManualEdit) {
+      propertyValueRef.current = data.propertyValue
+
+      const propertyValue = Number.parseFloat(data.propertyValue)
+      if (!isNaN(propertyValue)) {
+        setFormValues((prev) => ({
+          ...prev,
+          totalAmount: propertyValue.toString(),
+          amountInWords: convertNumberToWords(propertyValue),
+        }))
+
+        // Only update parent if we're not in manual edit mode
+        updateData({
+          ...data,
+          totalAmount: propertyValue.toString(),
+          amountInWords: convertNumberToWords(propertyValue),
+        })
+      }
+    }
+  }, [data.propertyValue, data, formValues.isManualEdit, updateData])
+
   // Calculate total of individual payments
   const calculateTotalPayments = () => {
     return formValues.payments.reduce((total, payment) => {
@@ -88,13 +120,18 @@ export function PaymentTab({ data, updateData, errors = [] }: PaymentTabProps) {
   }
 
   const handleTotalAmountChange = (value: string) => {
+    const numValue = Number.parseFloat(value)
+
     setFormValues({
       ...formValues,
       totalAmount: value,
+      amountInWords: !isNaN(numValue) ? convertNumberToWords(numValue) : "Zero",
     })
+
     updateData({
       ...data,
       totalAmount: value,
+      amountInWords: !isNaN(numValue) ? convertNumberToWords(numValue) : "Zero",
     })
   }
 
@@ -122,9 +159,20 @@ export function PaymentTab({ data, updateData, errors = [] }: PaymentTabProps) {
 
   const handlePaymentChange = (index: number, field: string, value: string) => {
     const updatedPayments = [...formValues.payments]
-    updatedPayments[index] = {
-      ...updatedPayments[index],
-      [field]: value,
+
+    // If changing amount, also update amountInWords
+    if (field === "amount") {
+      const numValue = Number.parseFloat(value)
+      updatedPayments[index] = {
+        ...updatedPayments[index],
+        [field]: value,
+        amountInWords: !isNaN(numValue) ? convertNumberToWords(numValue) : "",
+      }
+    } else {
+      updatedPayments[index] = {
+        ...updatedPayments[index],
+        [field]: value,
+      }
     }
 
     const newFormValues = {
@@ -512,18 +560,18 @@ export function PaymentTab({ data, updateData, errors = [] }: PaymentTabProps) {
                   readOnly={!formValues.isManualEdit}
                 />
                 <div className="ml-2">
-                  <RadioGroup
-                    value={formValues.isManualEdit ? "manual" : "auto"}
-                    onValueChange={(value) => handleManualEditChange(value === "manual")}
-                    className="flex items-center"
-                  >
-                    <div className="flex items-center space-x-1">
-                      <RadioGroupItem value="manual" id="manual-edit" />
-                      <Label htmlFor="manual-edit" className="text-xs">
-                        கைமுறையாக திருத்த (Manual Edit)
-                      </Label>
-                    </div>
-                  </RadioGroup>
+                  <div className="flex items-center space-x-1">
+                    <input
+                      type="checkbox"
+                      id="manual-edit"
+                      checked={formValues.isManualEdit}
+                      onChange={(e) => handleManualEditChange(e.target.checked)}
+                      className="rounded text-purple-600 focus:ring-purple-500"
+                    />
+                    <Label htmlFor="manual-edit" className="text-xs">
+                      கைமுறையாக திருத்த (Manual Edit)
+                    </Label>
+                  </div>
                 </div>
               </div>
               <p className="text-xs text-gray-500 mt-1">
@@ -543,6 +591,7 @@ export function PaymentTab({ data, updateData, errors = [] }: PaymentTabProps) {
                 className={`mt-1 border-purple-200 focus-visible:ring-purple-400 ${
                   hasError("தொகையை எழுத்துகளில்") ? "border-red-500" : ""
                 }`}
+                readOnly={!formValues.isManualEdit}
               />
             </div>
           </div>
@@ -675,6 +724,7 @@ export function PaymentTab({ data, updateData, errors = [] }: PaymentTabProps) {
                     value={payment.amountInWords}
                     onChange={(e) => handlePaymentChange(index, "amountInWords", e.target.value)}
                     className="mt-1 border-purple-200 focus-visible:ring-purple-400"
+                    readOnly={true}
                   />
                 </div>
               </div>
