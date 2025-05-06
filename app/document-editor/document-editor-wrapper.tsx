@@ -9,7 +9,6 @@ import { RichTextEditor } from "./rich-text-editor"
 import { DocumentTemplates } from "./document-templates"
 import { DocumentExport } from "./document-export"
 import { getSupabaseBrowserClient } from "@/lib/supabase"
-import { ensureDocumentTemplatesExist } from "@/lib/document-utils"
 import { toast } from "sonner"
 
 export function DocumentEditorWrapper() {
@@ -17,44 +16,48 @@ export function DocumentEditorWrapper() {
   const [documentTitle, setDocumentTitle] = useState("")
   const [documentContent, setDocumentContent] = useState("")
   const [isLoading, setIsLoading] = useState(false)
-  const [supabase, setSupabase] = useState(() => {
-    try {
-      return getSupabaseBrowserClient()
-    } catch (error) {
-      console.error("Failed to initialize Supabase client:", error)
-      return null
-    }
-  })
+  const [supabaseInitialized, setSupabaseInitialized] = useState(false)
+  const [supabase, setSupabase] = useState(null)
 
   useEffect(() => {
-    // Initialize document templates and storage bucket
-    const initialize = async () => {
+    // Initialize Supabase client
+    const initializeSupabase = async () => {
       try {
         // Check if Supabase environment variables exist
         if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-          throw new Error("Supabase environment variables are not configured properly")
+          toast.error("Supabase சூழல் மாறிகள் சரியாக உள்ளமைக்கப்படவில்லை")
+          return
         }
-
-        // Ensure document templates exist
-        await ensureDocumentTemplatesExist()
 
         // Get the Supabase client safely
         const supabaseClient = getSupabaseBrowserClient()
+        setSupabase(supabaseClient)
+        setSupabaseInitialized(true)
 
-        // Initialize storage bucket
-        const { data: buckets } = await supabaseClient.storage.listBuckets()
-        if (!buckets?.find((bucket) => bucket.name === "document-assets")) {
-          await supabaseClient.storage.createBucket("document-assets", {
-            public: true,
-          })
+        // Initialize storage bucket if Supabase is available
+        try {
+          const { data: buckets, error } = await supabaseClient.storage.listBuckets()
+
+          if (error) {
+            console.error("Error listing buckets:", error)
+            return
+          }
+
+          if (!buckets?.find((bucket) => bucket.name === "document-assets")) {
+            await supabaseClient.storage.createBucket("document-assets", {
+              public: true,
+            })
+          }
+        } catch (storageError) {
+          console.error("Error initializing storage:", storageError)
         }
       } catch (error) {
-        console.error("Error initializing:", error)
-        toast.error(`ஆரம்பமாக்குவதில் பிழை: ${error instanceof Error ? error.message : "Unknown error"}`)
+        console.error("Error initializing Supabase:", error)
+        toast.error(`Supabase ஐ ஆரம்பிப்பதில் பிழை: ${error instanceof Error ? error.message : "Unknown error"}`)
       }
     }
 
-    initialize()
+    initializeSupabase()
   }, [])
 
   const handleSaveDocument = async () => {
@@ -63,7 +66,7 @@ export function DocumentEditorWrapper() {
       return
     }
 
-    if (!supabase) {
+    if (!supabaseInitialized || !supabase) {
       toast.error("Supabase சேவையை அணுக முடியவில்லை. மீண்டும் முயற்சிக்கவும்.")
       return
     }
@@ -104,7 +107,11 @@ export function DocumentEditorWrapper() {
       </div>
 
       <div className="flex justify-end">
-        <Button onClick={handleSaveDocument} disabled={isLoading} className="bg-purple-600 hover:bg-purple-700">
+        <Button
+          onClick={handleSaveDocument}
+          disabled={isLoading || !supabaseInitialized}
+          className="bg-purple-600 hover:bg-purple-700"
+        >
           {isLoading ? "சேமிக்கிறது..." : "ஆவணத்தை சேமி"}
         </Button>
       </div>

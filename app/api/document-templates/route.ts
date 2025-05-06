@@ -1,24 +1,26 @@
-import { getSupabaseServerClient } from "./supabase"
+import { NextResponse } from "next/server"
+import { getSupabaseServerClient } from "@/lib/supabase"
 
-// Function to ensure document templates exist in the database
-export async function ensureDocumentTemplatesExist() {
+export async function GET() {
   try {
-    // Get the Supabase client safely
     const supabase = getSupabaseServerClient()
 
     if (!supabase) {
-      console.error("Supabase client not available")
-      return
+      return NextResponse.json({ error: "Supabase client not available" }, { status: 500 })
     }
 
-    // Check if templates table exists
-    const { data: templates, error: templatesError } = await supabase.from("document_templates").select("id").limit(1)
+    const { data, error } = await supabase.from("document_templates").select("*").order("title")
 
-    // If there's an error or no templates, create default templates
-    if (templatesError || !templates || templates.length === 0) {
-      // Create default templates
-      await supabase.from("document_templates").insert([
+    if (error) {
+      console.error("Error fetching templates:", error)
+      return NextResponse.json({ error: "Failed to fetch templates" }, { status: 500 })
+    }
+
+    // If no templates found, return default templates
+    if (!data || data.length === 0) {
+      const defaultTemplates = [
         {
+          id: 1,
           title: "கிரைய பத்திரம்",
           description: "அடிப்படை கிரைய பத்திர வார்ப்புரு",
           content:
@@ -26,41 +28,20 @@ export async function ensureDocumentTemplatesExist() {
           category: "sale_deed",
         },
         {
+          id: 2,
           title: "அடமான பத்திரம்",
           description: "அடிப்படை அடமான பத்திர வார்ப்புரு",
           content:
             "<h1>அடமான பத்திரம்</h1><p>இந்த ஆவணம் [அடமானம் வைப்பவர் பெயர்] மற்றும் [அடமானம் பெறுபவர் பெயர்] இடையே [தேதி] அன்று செய்யப்பட்டது.</p><p>சொத்து விவரங்கள்: [சொத்து விவரங்கள்]</p><p>அடமான தொகை: [தொகை]</p>",
           category: "mortgage_deed",
         },
-      ])
+      ]
+      return NextResponse.json(defaultTemplates)
     }
 
-    return true
+    return NextResponse.json(data)
   } catch (error) {
-    console.error("Error ensuring document templates exist:", error)
-    return false
-  }
-}
-
-// Function to get document templates
-export async function getDocumentTemplates() {
-  try {
-    const supabase = getSupabaseServerClient()
-
-    if (!supabase) {
-      console.error("Supabase client not available")
-      return []
-    }
-
-    const { data, error } = await supabase.from("document_templates").select("*").order("title")
-
-    if (error) {
-      throw error
-    }
-
-    return data || []
-  } catch (error) {
-    console.error("Error fetching document templates:", error)
-    return []
+    console.error("Error in document templates API:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

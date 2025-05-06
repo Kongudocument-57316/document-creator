@@ -60,13 +60,11 @@
     "zod": "latest",
     "tinymce": "latest",
     "@tanstack/react-table": "latest",
-    "uuid": "latest",
-    "html2canvas": "latest",
-    "jspdf": "latest",
     "react-to-print": "latest",
-    "@supabase/supabase-js": "latest",
+    "uuid": "latest",
     "mammoth": "latest",
-    "@tinymce/tinymce-react": "latest"
+    "@tinymce/tinymce-react": "latest",
+    "@supabase/supabase-js": "latest"
   },
   "devDependencies": {
     "@types/node": "^22",
