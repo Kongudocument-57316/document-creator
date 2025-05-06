@@ -8,7 +8,7 @@ import { getSupabaseBrowserClient } from "@/lib/supabase"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card"
-import { Plus, Eye, Pencil, Trash2 } from "lucide-react"
+import { Plus, Eye, Pencil, Trash2, Users } from "lucide-react"
 import { DocumentDetailDialog } from "../components/document-detail-dialog"
 import { DeleteConfirmationDialog } from "../components/delete-confirmation-dialog"
 import { v4 as uuidv4 } from "uuid"
@@ -42,6 +42,7 @@ interface Seller {
 interface PreviousDocument {
   id: string
   sellerId?: string
+  sellerIds?: string[]
   sellerName?: string
   previousDocDate: string
   subRegistrarOfficeId: string
@@ -70,10 +71,9 @@ export function PreviousDocTab({ data, updateData, sellers = [] }: PreviousDocTa
   const [viewDialogOpen, setViewDialogOpen] = useState(false)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [addDialogOpen, setAddDialogOpen] = useState(false)
   const [selectedDocument, setSelectedDocument] = useState<PreviousDocument | null>(null)
   const [selectedSellerIndex, setSelectedSellerIndex] = useState<number | null>(null)
-  const [addDialogOpen, setAddDialogOpen] = useState(false)
-  const [newDocumentSellerId, setNewDocumentSellerId] = useState<string | null>(null)
 
   const [formValues, setFormValues] = useState({
     documentMode: data.documentMode || "singleSellerSingleDoc",
@@ -220,27 +220,8 @@ export function PreviousDocTab({ data, updateData, sellers = [] }: PreviousDocTa
     })
   }
 
-  // Add a new PR document for a seller
-  const addPrDocument = (sellerId: string, sellerName: string) => {
-    setNewDocumentSellerId(sellerId)
-    setSelectedDocument({
-      id: uuidv4(),
-      sellerId,
-      sellerName,
-      previousDocDate: "",
-      subRegistrarOfficeId: "",
-      bookNumberId: "",
-      documentYear: "",
-      documentNumber: "",
-      documentTypeId: "",
-      submissionTypeId: "",
-    })
-    setAddDialogOpen(true)
-  }
-
-  // Add a new common PR document
-  const addCommonPrDocument = () => {
-    setNewDocumentSellerId(null)
+  // Add a new document
+  const handleAddDocument = () => {
     setSelectedDocument({
       id: uuidv4(),
       previousDocDate: "",
@@ -256,35 +237,18 @@ export function PreviousDocTab({ data, updateData, sellers = [] }: PreviousDocTa
 
   // Save a new document
   const handleSaveNewDocument = (newDoc: PreviousDocument) => {
-    if (newDocumentSellerId) {
-      // Add to seller's additional documents
-      const updatedAdditionalDocs = [...(formValues.additionalDocuments || [])]
-      updatedAdditionalDocs.push(newDoc)
+    const updatedAdditionalDocs = [...(formValues.additionalDocuments || [])]
+    updatedAdditionalDocs.push(newDoc)
 
-      setFormValues((prev) => ({
-        ...prev,
-        additionalDocuments: updatedAdditionalDocs,
-      }))
+    setFormValues((prev) => ({
+      ...prev,
+      additionalDocuments: updatedAdditionalDocs,
+    }))
 
-      updateData({
-        ...formValues,
-        additionalDocuments: updatedAdditionalDocs,
-      })
-    } else {
-      // Add to common additional documents
-      const updatedAdditionalDocs = [...(formValues.additionalDocuments || [])]
-      updatedAdditionalDocs.push(newDoc)
-
-      setFormValues((prev) => ({
-        ...prev,
-        additionalDocuments: updatedAdditionalDocs,
-      }))
-
-      updateData({
-        ...formValues,
-        additionalDocuments: updatedAdditionalDocs,
-      })
-    }
+    updateData({
+      ...formValues,
+      additionalDocuments: updatedAdditionalDocs,
+    })
   }
 
   // View document details
@@ -384,11 +348,16 @@ export function PreviousDocTab({ data, updateData, sellers = [] }: PreviousDocTa
     setSelectedDocument(null)
   }
 
-  // Function to validate date format (DD/MM/YYYY)
-  const validateDateFormat = (dateString: string) => {
-    // Basic validation for DD/MM/YYYY format
-    const regex = /^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/
-    return regex.test(dateString)
+  // Get seller names for a document
+  const getSellerNamesForDocument = (document: PreviousDocument) => {
+    if (!document.sellerIds || document.sellerIds.length === 0) {
+      return document.sellerName || "-"
+    }
+
+    return document.sellerIds
+      .map((id) => sellers.find((s) => s.id === id)?.name || "")
+      .filter((name) => name)
+      .join(", ")
   }
 
   // Render a common document form
@@ -538,15 +507,6 @@ export function PreviousDocTab({ data, updateData, sellers = [] }: PreviousDocTa
         <CardHeader className="bg-purple-50 rounded-t-lg">
           <div className="flex justify-between items-center">
             <CardTitle className="text-purple-700 text-lg">{seller.sellerName || `விற்பனையாளர் ${index + 1}`}</CardTitle>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => addPrDocument(seller.sellerId, seller.sellerName)}
-              className="border-purple-300 text-purple-700 hover:bg-purple-100"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              கூடுதல் ஆவணம்
-            </Button>
           </div>
         </CardHeader>
         <CardContent className="pt-4">
@@ -702,19 +662,36 @@ export function PreviousDocTab({ data, updateData, sellers = [] }: PreviousDocTa
             <CardHeader className="bg-purple-50 rounded-t-lg py-3">
               <div className="flex justify-between items-center">
                 <CardTitle className="text-purple-700 text-md">
-                  {doc.sellerName ? `${doc.sellerName} - கூடுதல் ஆவணம் ${index + 1}` : `கூடுதல் ஆவணம் ${index + 1}`}
+                  {doc.sellerIds && doc.sellerIds.length > 0 ? (
+                    <div className="flex items-center">
+                      <Users className="h-4 w-4 mr-2" />
+                      கூடுதல் ஆவணம் {index + 1}
+                    </div>
+                  ) : (
+                    `கூடுதல் ஆவணம் ${index + 1}`
+                  )}
                 </CardTitle>
               </div>
             </CardHeader>
             <CardContent className="py-3">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
+                  <Label className="font-medium">விற்பனையாளர்(கள்)</Label>
+                  <p className="text-sm">{getSellerNamesForDocument(doc) || "-"}</p>
+                </div>
+                <div>
                   <Label className="font-medium">ஆவண தேதி</Label>
                   <p className="text-sm">{doc.previousDocDate || "-"}</p>
                 </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
                 <div>
                   <Label className="font-medium">ஆவண எண்</Label>
                   <p className="text-sm">{doc.documentNumber || "-"}</p>
+                </div>
+                <div>
+                  <Label className="font-medium">ஆவண வருடம்</Label>
+                  <p className="text-sm">{doc.documentYear || "-"}</p>
                 </div>
               </div>
             </CardContent>
@@ -821,7 +798,7 @@ export function PreviousDocTab({ data, updateData, sellers = [] }: PreviousDocTa
             </div>
             <Button
               variant="outline"
-              onClick={addCommonPrDocument}
+              onClick={handleAddDocument}
               className="border-purple-300 text-purple-700 hover:bg-purple-100"
             >
               <Plus className="h-4 w-4 mr-2" />
@@ -834,12 +811,22 @@ export function PreviousDocTab({ data, updateData, sellers = [] }: PreviousDocTa
 
       {(documentMode === "singleSellerMultiDoc" || documentMode === "multiSellerMultiDoc") && (
         <>
-          <div className="mb-4">
-            <h4 className="text-lg font-semibold text-purple-700">
-              {documentMode === "singleSellerMultiDoc"
-                ? "விற்பனையாளருக்கான பல ஆவண விவரங்கள்"
-                : "ஒவ்வொரு விற்பனையாளருக்கான தனித்தனி ஆவண விவரங்கள்"}
-            </h4>
+          <div className="mb-4 flex justify-between items-center">
+            <div>
+              <h4 className="text-lg font-semibold text-purple-700">
+                {documentMode === "singleSellerMultiDoc"
+                  ? "விற்பனையாளருக்கான பல ஆவண விவரங்கள்"
+                  : "ஒவ்வொரு விற்பனையாளருக்கான தனித்தனி ஆவண விவரங்கள்"}
+              </h4>
+            </div>
+            <Button
+              variant="outline"
+              onClick={handleAddDocument}
+              className="border-purple-300 text-purple-700 hover:bg-purple-100"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              கூடுதல் ஆவணம் சேர்
+            </Button>
           </div>
 
           {formValues.sellerDocuments && formValues.sellerDocuments.length > 0 ? (
@@ -864,6 +851,8 @@ export function PreviousDocTab({ data, updateData, sellers = [] }: PreviousDocTa
         document={selectedDocument}
         readOnly={true}
         title="ஆவண விவரங்களைக் காண்"
+        sellers={sellers}
+        allowSellerSelection={true}
       />
 
       {/* Edit Document Dialog */}
@@ -873,6 +862,8 @@ export function PreviousDocTab({ data, updateData, sellers = [] }: PreviousDocTa
         document={selectedDocument}
         onSave={handleUpdateDocument}
         title="ஆவண விவரங்களைத் திருத்து"
+        sellers={sellers}
+        allowSellerSelection={true}
       />
 
       {/* Add Document Dialog */}
@@ -882,6 +873,8 @@ export function PreviousDocTab({ data, updateData, sellers = [] }: PreviousDocTa
         document={selectedDocument}
         onSave={handleSaveNewDocument}
         title="புதிய ஆவணம் சேர்"
+        sellers={sellers}
+        allowSellerSelection={true}
       />
 
       {/* Delete Confirmation Dialog */}

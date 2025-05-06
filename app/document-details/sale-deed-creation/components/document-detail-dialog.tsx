@@ -7,6 +7,8 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { getSupabaseBrowserClient } from "@/lib/supabase"
+import { Checkbox } from "@/components/ui/checkbox"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 interface DocumentDetailDialogProps {
   isOpen: boolean
@@ -15,6 +17,8 @@ interface DocumentDetailDialogProps {
   onSave?: (updatedDoc: any) => void
   readOnly?: boolean
   title?: string
+  sellers?: any[]
+  allowSellerSelection?: boolean
 }
 
 export function DocumentDetailDialog({
@@ -24,6 +28,8 @@ export function DocumentDetailDialog({
   onSave,
   readOnly = false,
   title = "ஆவண விவரங்கள்",
+  sellers = [],
+  allowSellerSelection = false,
 }: DocumentDetailDialogProps) {
   const [formData, setFormData] = useState(document || {})
   const [subRegistrarOffices, setSubRegistrarOffices] = useState([])
@@ -31,12 +37,24 @@ export function DocumentDetailDialog({
   const [documentTypes, setDocumentTypes] = useState([])
   const [submissionTypes, setSubmissionTypes] = useState([])
   const [loading, setLoading] = useState(true)
+  const [selectedSellers, setSelectedSellers] = useState<string[]>([])
+  const [sellerSelectionMode, setSellerSelectionMode] = useState<"single" | "multiple">("single")
 
   const supabase = getSupabaseBrowserClient()
 
   useEffect(() => {
     if (isOpen) {
       setFormData(document || {})
+
+      // Initialize selected sellers
+      if (document && document.sellerIds) {
+        setSelectedSellers(Array.isArray(document.sellerIds) ? document.sellerIds : [document.sellerIds])
+      } else if (document && document.sellerId) {
+        setSelectedSellers([document.sellerId])
+      } else {
+        setSelectedSellers([])
+      }
+
       fetchReferenceData()
     }
   }, [isOpen, document])
@@ -74,23 +92,65 @@ export function DocumentDetailDialog({
     }))
   }
 
+  const handleSellerSelectionModeChange = (mode: "single" | "multiple") => {
+    setSellerSelectionMode(mode)
+    if (mode === "single" && selectedSellers.length > 1) {
+      // If switching to single mode and multiple sellers are selected, keep only the first one
+      setSelectedSellers([selectedSellers[0]])
+    }
+  }
+
+  const handleSellerSelection = (sellerId: string) => {
+    if (sellerSelectionMode === "single") {
+      setSelectedSellers([sellerId])
+    } else {
+      // For multiple selection mode
+      if (selectedSellers.includes(sellerId)) {
+        setSelectedSellers(selectedSellers.filter((id) => id !== sellerId))
+      } else {
+        setSelectedSellers([...selectedSellers, sellerId])
+      }
+    }
+  }
+
+  const handleSingleSellerChange = (sellerId: string) => {
+    setSelectedSellers([sellerId])
+  }
+
   const handleSave = () => {
     if (onSave) {
-      onSave(formData)
+      // Include selected sellers in the form data
+      const updatedData = {
+        ...formData,
+        sellerIds: selectedSellers,
+        // For backward compatibility
+        sellerId: selectedSellers.length > 0 ? selectedSellers[0] : null,
+        sellerName: selectedSellers.length > 0 ? sellers.find((s) => s.id === selectedSellers[0])?.name : null,
+      }
+      onSave(updatedData)
     }
     onClose()
   }
 
   // Function to get name by ID from a reference list
   const getNameById = (list, id) => {
-    const item = list.find((item) => item.id.toString() === id?.toString())
+    const item = list.find((item) => item.id?.toString() === id?.toString())
     return item ? item.name : ""
   }
 
   // Function to get book number by ID
   const getBookNumberById = (id) => {
-    const book = bookNumbers.find((book) => book.id.toString() === id?.toString())
+    const book = bookNumbers.find((book) => book.id?.toString() === id?.toString())
     return book ? book.number : ""
+  }
+
+  // Get seller names for display
+  const getSellerNames = () => {
+    if (!selectedSellers.length) return "-"
+    return selectedSellers
+      .map((id) => sellers.find((s) => s.id === id)?.name || "")
+      .filter((name) => name)
+      .join(", ")
   }
 
   return (
@@ -101,9 +161,82 @@ export function DocumentDetailDialog({
         </DialogHeader>
 
         <div className="space-y-4 py-4">
+          {/* Seller Selection Section */}
+          {allowSellerSelection && !readOnly && (
+            <div className="space-y-4 border-b pb-4 mb-4">
+              <div>
+                <Label className="font-medium mb-2 block">விற்பனையாளர் தேர்வு முறை</Label>
+                <div className="flex space-x-4">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="single-seller-selection"
+                      checked={sellerSelectionMode === "single"}
+                      onCheckedChange={() => handleSellerSelectionModeChange("single")}
+                    />
+                    <Label htmlFor="single-seller-selection">ஒரு விற்பனையாளர்</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="multiple-seller-selection"
+                      checked={sellerSelectionMode === "multiple"}
+                      onCheckedChange={() => handleSellerSelectionModeChange("multiple")}
+                    />
+                    <Label htmlFor="multiple-seller-selection">பல விற்பனையாளர்கள்</Label>
+                  </div>
+                </div>
+              </div>
+
+              {sellerSelectionMode === "single" ? (
+                <div>
+                  <Label htmlFor="seller-select">விற்பனையாளரைத் தேர்ந்தெடுக்கவும்</Label>
+                  <Select
+                    value={selectedSellers.length > 0 ? selectedSellers[0] : ""}
+                    onValueChange={handleSingleSellerChange}
+                  >
+                    <SelectTrigger className="mt-1 border-purple-200 focus-visible:ring-purple-400">
+                      <SelectValue placeholder="விற்பனையாளரைத் தேர்ந்தெடுக்கவும்" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {sellers.map((seller) => (
+                        <SelectItem key={seller.id} value={seller.id}>
+                          {seller.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : (
+                <div>
+                  <Label className="font-medium mb-2 block">விற்பனையாளர்களைத் தேர்ந்தெடுக்கவும்</Label>
+                  <ScrollArea className="h-[150px] border rounded-md p-2">
+                    <div className="space-y-2">
+                      {sellers.map((seller) => (
+                        <div key={seller.id} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`seller-${seller.id}`}
+                            checked={selectedSellers.includes(seller.id)}
+                            onCheckedChange={() => handleSellerSelection(seller.id)}
+                          />
+                          <Label htmlFor={`seller-${seller.id}`}>{seller.name}</Label>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </div>
+              )}
+            </div>
+          )}
+
           {readOnly ? (
             // Read-only view
             <div className="space-y-4">
+              {allowSellerSelection && (
+                <div>
+                  <Label className="font-medium">விற்பனையாளர்(கள்)</Label>
+                  <p className="mt-1 p-2 bg-gray-50 rounded-md">{getSellerNames()}</p>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label className="font-medium">முந்தைய ஆவண தேதி</Label>

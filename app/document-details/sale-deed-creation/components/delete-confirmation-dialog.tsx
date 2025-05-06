@@ -1,45 +1,47 @@
 "use client"
 
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
+import { AlertTriangle } from "lucide-react"
 
 interface DeleteConfirmationDialogProps {
   isOpen: boolean
   onClose: () => void
   onConfirm: () => void
   title?: string
-  description?: string
+  message?: string
 }
 
 export function DeleteConfirmationDialog({
   isOpen,
   onClose,
   onConfirm,
-  title = "நீக்க உறுதிப்படுத்தல்",
-  description = "இந்த ஆவணத்தை நீக்க விரும்புகிறீர்களா? இந்த செயல்பாட்டை மீட்டெடுக்க முடியாது.",
+  title = "உறுதிப்படுத்தவும்",
+  message = "இந்த ஆவணத்தை நிச்சயமாக நீக்க விரும்புகிறீர்களா? இந்த செயலை மீட்டெடுக்க முடியாது.",
 }: DeleteConfirmationDialogProps) {
   return (
-    <AlertDialog open={isOpen} onOpenChange={onClose}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle className="text-purple-800">{title}</AlertDialogTitle>
-          <AlertDialogDescription>{description}</AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>ரத்து செய்</AlertDialogCancel>
-          <AlertDialogAction onClick={onConfirm} className="bg-red-600 hover:bg-red-700">
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-semibold text-red-600 flex items-center">
+            <AlertTriangle className="h-5 w-5 mr-2" />
+            {title}
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="py-4">
+          <p className="text-gray-700">{message}</p>
+        </div>
+
+        <DialogFooter className="flex space-x-2 justify-end">
+          <Button variant="outline" onClick={onClose}>
+            ரத்து செய்
+          </Button>
+          <Button variant="destructive" onClick={onConfirm}>
             நீக்கு
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }
