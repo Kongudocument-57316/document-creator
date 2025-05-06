@@ -2,7 +2,7 @@ import { Header } from "@/components/header"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { FileText, Search, Home, ArrowLeft, FileSignature } from "lucide-react"
+import { FileText, Search, Home, ArrowLeft } from "lucide-react"
 
 export default function SaleDocument() {
   return (
@@ -26,7 +26,7 @@ export default function SaleDocument() {
         <div className="max-w-4xl mx-auto">
           <h1 className="text-3xl font-bold mb-6 text-teal-800 text-center">கிரைய ஆவண விவரங்கள்</h1>
 
-          <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-2">
             <Link href="/document-details/sale-document/create">
               <Card className="hover:bg-teal-100 cursor-pointer transition-colors border-teal-200 shadow-md">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -36,20 +36,6 @@ export default function SaleDocument() {
                 <CardContent>
                   <CardDescription className="text-teal-700 text-base">
                     புதிய கிரைய ஆவணத்தை உருவாக்க இங்கே கிளிக் செய்யவும்
-                  </CardDescription>
-                </CardContent>
-              </Card>
-            </Link>
-
-            <Link href="/document-details/sale-deed-creation">
-              <Card className="hover:bg-teal-100 cursor-pointer transition-colors border-teal-200 shadow-md">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-xl font-medium text-teal-700">கிரைய பத்திரம் உருவாக்கு</CardTitle>
-                  <FileSignature className="h-6 w-6 text-teal-500" />
-                </CardHeader>
-                <CardContent>
-                  <CardDescription className="text-teal-700 text-base">
-                    கிரைய பத்திரத்தை உருவாக்க இங்கே கிளிக் செய்யவும்
                   </CardDescription>
                 </CardContent>
               </Card>

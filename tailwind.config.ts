@@ -9,7 +9,6 @@ const config = {
     "./src/**/*.{ts,tsx}",
     "*.{js,ts,jsx,tsx,mdx}",
   ],
-  prefix: "",
   theme: {
     container: {
       center: true,
@@ -53,7 +52,21 @@ const config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        green: {
+        // மென்மையான லாவெண்டர் வண்ணம் (அமைப்பு விவரங்கள் பக்கத்திற்கு)
+        lavender: {
+          50: "#f5f3ff",
+          100: "#ede9fe",
+          200: "#ddd6fe",
+          300: "#c4b5fd",
+          400: "#a78bfa",
+          500: "#8b5cf6",
+          600: "#7c3aed",
+          700: "#6d28d9",
+          800: "#5b21b6",
+          900: "#4c1d95",
+        },
+        // மென்மையான மின்ட் வண்ணம் (முகப்பு பக்கத்திற்கு)
+        mint: {
           50: "#f0fdf4",
           100: "#dcfce7",
           200: "#bbf7d0",
@@ -65,6 +78,7 @@ const config = {
           800: "#166534",
           900: "#14532d",
         },
+        // மென்மையான ஆம்பர் வண்ணம் (ஆவண விவரங்கள் பக்கத்திற்கு)
         amber: {
           50: "#fffbeb",
           100: "#fef3c7",
@@ -77,6 +91,7 @@ const config = {
           800: "#92400e",
           900: "#78350f",
         },
+        // மென்மையான டீல் வண்ணம் (கிரைய ஆவண விவரங்கள் பக்கத்திற்கு)
         teal: {
           50: "#f0fdfa",
           100: "#ccfbf1",
@@ -89,6 +104,7 @@ const config = {
           800: "#115e59",
           900: "#134e4a",
         },
+        // மென்மையான சயன் வண்ணம் (புதிய கிரைய ஆவணம் உருவாக்கு பக்கத்திற்கு)
         cyan: {
           50: "#ecfeff",
           100: "#cffafe",
@@ -101,6 +117,7 @@ const config = {
           800: "#155e75",
           900: "#164e63",
         },
+        // மென்மையான ஸ்கை வண்ணம் (கிரைய ஆவணங்கள் தேடுதல் பக்கத்திற்கு)
         sky: {
           50: "#f0f9ff",
           100: "#e0f2fe",
@@ -113,18 +130,6 @@ const config = {
           800: "#075985",
           900: "#0c4a6e",
         },
-        purple: {
-          50: "#faf5ff",
-          100: "#f3e8ff",
-          200: "#e9d5ff",
-          300: "#d8b4fe",
-          400: "#c084fc",
-          500: "#a855f7",
-          600: "#9333ea",
-          700: "#7e22ce",
-          800: "#6b21a8",
-          900: "#581c87",
-        },
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -133,12 +138,12 @@ const config = {
       },
       keyframes: {
         "accordion-down": {
-          from: { height: "0" },
+          from: { height: 0 },
           to: { height: "var(--radix-accordion-content-height)" },
         },
         "accordion-up": {
           from: { height: "var(--radix-accordion-content-height)" },
-          to: { height: "0" },
+          to: { height: 0 },
         },
       },
       animation: {

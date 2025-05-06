@@ -2,7 +2,6 @@ import { Header } from "@/components/header"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { Home, ArrowLeft } from "lucide-react"
-import { SaleDocumentSearch } from "./sale-document-search"
 
 export default function SearchSaleDocument() {
   return (
@@ -26,8 +25,9 @@ export default function SearchSaleDocument() {
         <div className="max-w-6xl mx-auto">
           <h2 className="text-2xl font-bold mb-6 text-sky-800">கிரைய ஆவணங்கள் தேடுதல்</h2>
 
+          {/* இங்கே கிரைய ஆவணங்கள் தேடும் படிவம் வரும் */}
           <div className="bg-white p-6 rounded-lg border border-sky-200 shadow-sm">
-            <SaleDocumentSearch />
+            <p className="text-sky-700">கிரைய ஆவணங்கள் தேடும் படிவம்</p>
           </div>
         </div>
       </main>
