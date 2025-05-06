@@ -90,6 +90,25 @@ export function SaleDeedCreationForm() {
 
   return (
     <div className="space-y-6">
+      {/* Back and Home buttons at top corner */}
+      <div className="flex justify-start gap-2 mb-4">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => router.back()}
+          className="border-purple-300 text-purple-700 hover:bg-purple-100"
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" /> பின் செல்க
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => router.push("/")}
+          className="border-purple-300 text-purple-700 hover:bg-purple-100"
+        >
+          <Home className="mr-2 h-4 w-4" /> முகப்பு
+        </Button>
+      </div>
       {/* Tabs */}
       <div className="flex overflow-x-auto pb-2 -mx-2 px-2">
         {tabs.map((tab) => (
@@ -130,6 +149,19 @@ export function SaleDeedCreationForm() {
         )}
       </Card>
 
+      {/* Previous button below tabs */}
+      <div className="flex justify-start mt-4">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={handlePrevious}
+          disabled={activeTab === "deed" || isLoading}
+          className="border-purple-300 text-purple-700 hover:bg-purple-100"
+        >
+          முந்தைய
+        </Button>
+      </div>
+
       {showPdfGenerator && (
         <div className="mt-6">
           <SimplePdfGenerator formData={formData} title="கிரைய ஆவணம்" />
@@ -138,24 +170,7 @@ export function SaleDeedCreationForm() {
 
       {/* Navigation Buttons */}
       <div className="flex justify-between">
-        <div className="flex gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => router.back()}
-            className="border-purple-300 text-purple-700 hover:bg-purple-100"
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" /> பின் செல்க
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => router.push("/")}
-            className="border-purple-300 text-purple-700 hover:bg-purple-100"
-          >
-            <Home className="mr-2 h-4 w-4" /> முகப்பு
-          </Button>
-        </div>
+        <div>{/* Previous button moved above */}</div>
 
         <div>
           <Button
