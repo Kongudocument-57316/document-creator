@@ -41,7 +41,7 @@ export default function SaleDocument() {
               </Card>
             </Link>
 
-            <Link href="/document-details/sale-deed-creation/page">
+            <Link href="/document-details/sale-deed-creation">
               <Card className="hover:bg-teal-100 cursor-pointer transition-colors border-teal-200 shadow-md">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-xl font-medium text-teal-700">கிரைய பத்திரம் உருவாக்கு</CardTitle>

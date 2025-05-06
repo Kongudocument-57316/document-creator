@@ -2,7 +2,7 @@
 
 import { useRef } from "react"
 import { Button } from "@/components/ui/button"
-import { useReactToPrint } from "react-to-print"
+import ReactToPrint from "react-to-print"
 import SaleDeedPdfTemplate from "./sale-deed-pdf-template"
 
 interface SaleDeedPdfGeneratorProps {
@@ -10,23 +10,19 @@ interface SaleDeedPdfGeneratorProps {
   title: string
 }
 
-export const SaleDeedPdfGenerator = ({ formData, title }: SaleDeedPdfGeneratorProps) => {
-  const componentRef = useRef(null)
-
-  const handlePrint = useReactToPrint({
-    content: () => componentRef.current,
-    documentTitle: title,
-    removeAfterPrint: true,
-  })
+export function SaleDeedPdfGenerator({ formData, title }: SaleDeedPdfGeneratorProps) {
+  const componentRef = useRef<HTMLDivElement>(null)
 
   return (
     <div>
       <div style={{ display: "none" }}>
         <SaleDeedPdfTemplate ref={componentRef} formData={formData} />
       </div>
-      <Button onClick={handlePrint} className="bg-purple-600 hover:bg-purple-700">
-        PDF ஏற்றுமதி செய் (Export PDF)
-      </Button>
+      <ReactToPrint
+        trigger={() => <Button className="bg-purple-600 hover:bg-purple-700">PDF ஏற்றுமதி செய் (Export PDF)</Button>}
+        content={() => componentRef.current}
+        documentTitle={title}
+      />
     </div>
   )
 }

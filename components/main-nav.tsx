@@ -21,6 +21,12 @@ export function MainNav({ className, ...props }: React.HTMLAttributes<HTMLElemen
         ஆவண விவரங்கள்
       </Link>
       <Link
+        href="/document-details/sale-deed-creation"
+        className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
+      >
+        கிரைய பத்திரம் உருவாக்கு
+      </Link>
+      <Link
         href="/document-editor"
         className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
       >

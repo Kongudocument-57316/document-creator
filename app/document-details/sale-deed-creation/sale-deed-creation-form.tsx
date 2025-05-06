@@ -12,9 +12,9 @@ import { PreviousDocTab } from "./tabs/previous-doc-tab"
 import { PropertyTab } from "./tabs/property-tab"
 import { PaymentTab } from "./tabs/payment-tab"
 import { WitnessTab } from "./tabs/witness-tab"
-import { FileText, User, Users, FileSearch, Home, CreditCard, UserCheck } from "lucide-react"
+import { FileText, User, Users, FileSearch, Home, CreditCard, UserCheck, Printer } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { SaleDeedPdfGenerator } from "./sale-deed-pdf-generator"
+import { SimplePdfGenerator } from "./simple-pdf-generator"
 
 type TabType = "deed" | "buyer" | "seller" | "previousDoc" | "property" | "payment" | "witness"
 
@@ -132,44 +132,59 @@ export function SaleDeedCreationForm() {
 
       {showPdfGenerator && (
         <div className="mt-6">
-          <SaleDeedPdfGenerator formData={formData} title="கிரைய ஆவணம்" />
+          <SimplePdfGenerator formData={formData} title="கிரைய ஆவணம்" />
         </div>
       )}
 
       {/* Navigation Buttons */}
       <div className="flex justify-between">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={handlePrevious}
-          disabled={activeTab === "deed" || isLoading}
-          className="border-purple-300 text-purple-700 hover:bg-purple-100"
-        >
-          முந்தைய
-        </Button>
-
-        {activeTab === "witness" ? (
+        <div>
           <Button
             type="button"
-            onClick={handleSubmit}
-            disabled={isLoading}
-            className="bg-purple-600 hover:bg-purple-700"
+            variant="outline"
+            onClick={handlePrevious}
+            disabled={activeTab === "deed" || isLoading}
+            className="border-purple-300 text-purple-700 hover:bg-purple-100"
           >
-            {isLoading ? "சேமிக்கிறது..." : "சேமி"}
+            முந்தைய
           </Button>
-        ) : (
-          <Button type="button" onClick={handleNext} className="bg-purple-600 hover:bg-purple-700">
-            அடுத்து
+        </div>
+
+        <div>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setShowPdfGenerator(!showPdfGenerator)}
+            className="border-purple-300 text-purple-700 hover:bg-purple-100"
+          >
+            {showPdfGenerator ? (
+              <>
+                <Printer className="mr-2 h-4 w-4" /> மறை
+              </>
+            ) : (
+              <>
+                <Printer className="mr-2 h-4 w-4" /> அச்சிடு
+              </>
+            )}
           </Button>
-        )}
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => setShowPdfGenerator(!showPdfGenerator)}
-          className="border-purple-300 text-purple-700 hover:bg-purple-100"
-        >
-          {showPdfGenerator ? "PDF ஏற்றுமதியை மறை" : "PDF ஏற்றுமதியைக் காட்டு"}
-        </Button>
+        </div>
+
+        <div>
+          {activeTab === "witness" ? (
+            <Button
+              type="button"
+              onClick={handleSubmit}
+              disabled={isLoading}
+              className="bg-purple-600 hover:bg-purple-700"
+            >
+              {isLoading ? "சேமிக்கிறது..." : "சேமி"}
+            </Button>
+          ) : (
+            <Button type="button" onClick={handleNext} className="bg-purple-600 hover:bg-purple-700">
+              அடுத்து
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   )
