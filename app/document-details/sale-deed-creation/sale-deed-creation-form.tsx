@@ -38,6 +38,7 @@ export function SaleDeedCreationForm() {
     id: null,
   })
 
+  // Modify the updateFormData function to only update the documentId when needed
   const updateFormData = (section: string, data: any) => {
     setFormData((prev) => {
       const newFormData = {

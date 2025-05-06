@@ -18,17 +18,19 @@ import { DocumentPreview } from "./document-preview"
 
 interface DocumentEditorProps {
   initialContent?: string
-  onSave?: (content: string) => void
+  onSave?: (content: string) => Promise<any>
   formData: any
+  documentId?: string
 }
 
-export function DocumentEditor({ initialContent = "", onSave, formData }: DocumentEditorProps) {
+export function DocumentEditor({ initialContent = "", onSave, formData, documentId }: DocumentEditorProps) {
   const [content, setContent] = useState(initialContent)
   const [templates, setTemplates] = useState<any[]>([])
   const [selectedTemplate, setSelectedTemplate] = useState("")
   const [newTemplateName, setNewTemplateName] = useState("")
   const [isFieldDialogOpen, setIsFieldDialogOpen] = useState(false)
   const [activeTab, setActiveTab] = useState("editor")
+  const [saving, setSaving] = useState(false)
   const editorRef = useRef<any>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const supabase = getSupabaseBrowserClient()
@@ -59,10 +61,23 @@ export function DocumentEditor({ initialContent = "", onSave, formData }: Docume
     setContent(content)
   }
 
-  const handleSave = () => {
-    if (onSave) {
-      onSave(content)
-      toast.success("ஆவணம் வெற்றிகரமாக சேமிக்கப்பட்டது")
+  const handleSave = async () => {
+    if (!onSave) return
+
+    try {
+      setSaving(true)
+      const result = await onSave(content)
+
+      if (result && result.success) {
+        toast.success("ஆவணம் வெற்றிகரமாக சேமிக்கப்பட்டது")
+      } else {
+        toast.error("ஆவணத்தை சேமிப்பதில் பிழை")
+      }
+    } catch (error) {
+      console.error("Error saving document:", error)
+      toast.error("ஆவணத்தை சேமிப்பதில் பிழை")
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -146,31 +161,8 @@ export function DocumentEditor({ initialContent = "", onSave, formData }: Docume
     const file = e.target.files?.[0]
     if (!file) return
 
-    const formData = new FormData()
-    formData.append("file", file)
-
-    try {
-      const response = await fetch("/api/convert-docx-to-html", {
-        method: "POST",
-        body: formData,
-      })
-
-      if (!response.ok) {
-        throw new Error("Conversion failed")
-      }
-
-      const data = await response.json()
-      if (data.html) {
-        setContent(data.html)
-        if (editorRef.current) {
-          editorRef.current.setContent(data.html)
-        }
-        toast.success("Word ஆவணம் வெற்றிகரமாக இறக்குமதி செய்யப்பட்டது")
-      }
-    } catch (error) {
-      console.error("Error importing Word document:", error)
-      toast.error("Word ஆவணத்தை இறக்குமதி செய்வதில் பிழை")
-    }
+    // Handle file import logic here
+    toast.error("Word ஆவணத்தை இறக்குமதி செய்வது தற்போது ஆதரிக்கப்படவில்லை")
 
     // Reset file input
     if (fileInputRef.current) {
@@ -251,7 +243,7 @@ export function DocumentEditor({ initialContent = "", onSave, formData }: Docume
           <TabsList className="mb-4">
             <TabsTrigger value="editor" className="flex items-center gap-1">
               <FileText className="h-4 w-4" />
-              ஆவண உருவாக்கி
+              ஆவண திருத்தி
             </TabsTrigger>
             <TabsTrigger value="preview" className="flex items-center gap-1">
               <Eye className="h-4 w-4" />
@@ -265,9 +257,9 @@ export function DocumentEditor({ initialContent = "", onSave, formData }: Docume
 
           <TabsContent value="editor" className="space-y-4">
             <div className="flex flex-wrap gap-2 mb-4">
-              <Button onClick={handleSave} className="bg-purple-600 hover:bg-purple-700">
+              <Button onClick={handleSave} disabled={saving} className="bg-purple-600 hover:bg-purple-700">
                 <Save className="h-4 w-4 mr-2" />
-                சேமி
+                {saving ? "சேமிக்கிறது..." : "சேமி"}
               </Button>
 
               <Button onClick={handleExportWord} variant="outline" className="border-purple-200 hover:bg-purple-50">
@@ -377,7 +369,6 @@ export function DocumentEditor({ initialContent = "", onSave, formData }: Docume
                 `,
                 directionality: "ltr",
                 language: "en",
-                language_url: "/tinymce/langs/ta.js",
                 setup: (editor) => {
                   editor.ui.registry.addButton("insertField", {
                     text: "புலத்தைச் சேர்க்க",

@@ -63,8 +63,8 @@
     "react-to-print": "latest",
     "uuid": "latest",
     "mammoth": "latest",
-    "@tinymce/tinymce-react": "latest",
-    "@supabase/supabase-js": "latest"
+    "@supabase/supabase-js": "latest",
+    "@tinymce/tinymce-react": "latest"
   },
   "devDependencies": {
     "@types/node": "^22",

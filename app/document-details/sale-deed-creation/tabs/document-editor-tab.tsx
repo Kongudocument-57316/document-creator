@@ -10,23 +10,29 @@ import { toast } from "sonner"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { RefreshCw } from "lucide-react"
+import { saveDocumentContent } from "../actions/document-actions"
 
 interface DocumentEditorTabProps {
   data: any
-  updateData: (data: any) => void
+  documentId: string | null
+  updateDocumentId: (id: string) => void
 }
 
-export function DocumentEditorTab({ data, updateData }: DocumentEditorTabProps) {
+export function DocumentEditorTab({ data, documentId, updateDocumentId }: DocumentEditorTabProps) {
   const [documentContent, setDocumentContent] = useState(data.documentContent || "")
+  const [loading, setLoading] = useState(true)
   const supabase = getSupabaseBrowserClient()
   const [lastFormUpdate, setLastFormUpdate] = useState<Date | null>(null)
 
   useEffect(() => {
-    // If no document content exists, try to load a default template
-    if (!documentContent) {
+    // If a document ID exists, try to load that document
+    if (documentId) {
+      loadExistingDocument(documentId)
+    } else {
+      // Otherwise load a default template
       loadDefaultTemplate()
     }
-  }, [])
+  }, [documentId])
 
   useEffect(() => {
     setLastFormUpdate(new Date())
@@ -39,7 +45,33 @@ export function DocumentEditorTab({ data, updateData }: DocumentEditorTabProps) 
     data.deed?.documentNumber,
   ])
 
+  const loadExistingDocument = async (id: string) => {
+    setLoading(true)
+    try {
+      const { data: documentData, error } = await supabase
+        .from("sale_deed_documents")
+        .select("content")
+        .eq("id", id)
+        .single()
+
+      if (error) throw error
+
+      if (documentData && documentData.content) {
+        setDocumentContent(documentData.content)
+      } else {
+        loadDefaultTemplate()
+      }
+    } catch (error: any) {
+      console.error("Error loading document:", error.message)
+      toast.error("ஆவணத்தை ஏற்றுவதில் பிழை")
+      loadDefaultTemplate()
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const loadDefaultTemplate = async () => {
+    setLoading(true)
     try {
       const { data: templateData, error } = await supabase
         .from("document_templates")
@@ -51,25 +83,53 @@ export function DocumentEditorTab({ data, updateData }: DocumentEditorTabProps) 
 
       if (templateData && templateData.content) {
         setDocumentContent(templateData.content)
-        updateData({ ...data, documentContent: templateData.content })
+      } else {
+        // If no default template, create an empty document
+        setDocumentContent("")
       }
     } catch (error: any) {
       console.error("Error loading default template:", error.message)
+      toast.error("இயல்புநிலை வார்ப்புருவை ஏற்றுவதில் பிழை")
+      setDocumentContent("")
+    } finally {
+      setLoading(false)
     }
   }
 
-  const handleSaveDocument = (content: string) => {
-    setDocumentContent(content)
-    updateData({ ...data, documentContent: content })
-    toast.success("ஆவணம் வெற்றிகரமாக சேமிக்கப்பட்டது")
+  const handleSaveDocument = async (content: string) => {
+    try {
+      setLoading(true)
+      const result = await saveDocumentContent(documentId || undefined, content, data)
+
+      if (result.success && result.id) {
+        // Update the document ID in the parent component
+        updateDocumentId(result.id)
+        setDocumentContent(content)
+        toast.success("ஆவணம் வெற்றிகரமாக சேமிக்கப்பட்டது")
+      } else {
+        toast.error("ஆவணத்தை சேமிப்பதில் பிழை: " + (result.error || "அறியப்படாத பிழை"))
+      }
+    } catch (error: any) {
+      console.error("Error saving document:", error)
+      toast.error("ஆவணத்தை சேமிப்பதில் பிழை: " + error.message)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleUpdateFromFormData = () => {
     // This will trigger a refresh of the document with the latest form data
-    setDocumentContent("")
     loadDefaultTemplate()
     toast.success("படிவ தரவின்படி ஆவணம் புதுப்பிக்கப்பட்டது")
     setLastFormUpdate(new Date())
+  }
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <p>ஏற்றுகிறது...</p>
+      </div>
+    )
   }
 
   return (
@@ -117,7 +177,12 @@ export function DocumentEditorTab({ data, updateData }: DocumentEditorTabProps) 
           <TabsContent value="editor">
             <Card>
               <CardContent className="p-4">
-                <DocumentEditor initialContent={documentContent} onSave={handleSaveDocument} formData={data} />
+                <DocumentEditor
+                  initialContent={documentContent}
+                  onSave={handleSaveDocument}
+                  formData={data}
+                  documentId={documentId || undefined}
+                />
               </CardContent>
             </Card>
           </TabsContent>
@@ -131,7 +196,7 @@ export function DocumentEditorTab({ data, updateData }: DocumentEditorTabProps) 
   )
 }
 
-// New component to select and copy fields to clipboard
+// Field selector component
 function FieldSelector({ data }: { data: any }) {
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text)
