@@ -5,12 +5,6 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { getSupabaseBrowserClient } from "@/lib/supabase"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Button } from "@/components/ui/button"
-import { CalendarIcon } from "lucide-react"
-import { Calendar } from "@/components/ui/calendar"
-import { format } from "date-fns"
-import { cn } from "@/lib/utils"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 
 interface SubRegistrarOffice {
@@ -28,6 +22,11 @@ interface DocumentType {
   name: string
 }
 
+interface SubmissionType {
+  id: number
+  name: string
+}
+
 interface PreviousDocTabProps {
   data: any
   updateData: (data: any) => void
@@ -38,15 +37,17 @@ export function PreviousDocTab({ data, updateData }: PreviousDocTabProps) {
   const [subRegistrarOffices, setSubRegistrarOffices] = useState<SubRegistrarOffice[]>([])
   const [bookNumbers, setBookNumbers] = useState<BookNumber[]>([])
   const [documentTypes, setDocumentTypes] = useState<DocumentType[]>([])
+  const [submissionTypes, setSubmissionTypes] = useState<SubmissionType[]>([])
   const [loading, setLoading] = useState(true)
   const [formValues, setFormValues] = useState({
     sellerType: data.sellerType || "single",
-    previousDocDate: data.previousDocDate ? new Date(data.previousDocDate) : null,
+    previousDocDate: data.previousDocDate || "",
     subRegistrarOfficeId: data.subRegistrarOfficeId || "",
     bookNumberId: data.bookNumberId || "",
     documentYear: data.documentYear || "",
     documentNumber: data.documentNumber || "",
     documentTypeId: data.documentTypeId || "",
+    submissionTypeId: data.submissionTypeId || "",
   })
 
   const supabase = getSupabaseBrowserClient()
@@ -70,6 +71,11 @@ export function PreviousDocTab({ data, updateData }: PreviousDocTabProps) {
         const { data: documentTypesData } = await supabase.from("document_types").select("id, name").order("name")
 
         if (documentTypesData) setDocumentTypes(documentTypesData)
+
+        // Fetch submission types
+        const { data: submissionTypesData } = await supabase.from("submission_types").select("id, name").order("name")
+
+        if (submissionTypesData) setSubmissionTypes(submissionTypesData)
       } catch (error) {
         console.error("Error fetching reference data:", error)
       } finally {
@@ -80,7 +86,7 @@ export function PreviousDocTab({ data, updateData }: PreviousDocTabProps) {
     fetchReferenceData()
   }, [supabase])
 
-  const handleChange = (field: string, value: string | Date | null) => {
+  const handleChange = (field: string, value: string) => {
     const newValues = { ...formValues, [field]: value }
     setFormValues(newValues)
     updateData(newValues)
@@ -89,6 +95,30 @@ export function PreviousDocTab({ data, updateData }: PreviousDocTabProps) {
   const handleSellerTypeChange = (value: string) => {
     setSellerType(value)
     handleChange("sellerType", value)
+  }
+
+  // Function to validate date format (DD/MM/YYYY)
+  const validateDateFormat = (dateString: string) => {
+    // Basic validation for DD/MM/YYYY format
+    const regex = /^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/
+    return regex.test(dateString)
+  }
+
+  // Handle date input change with validation
+  const handleDateChange = (value: string) => {
+    // Allow empty value or partial input during typing
+    if (value === "" || value.length < 10) {
+      handleChange("previousDocDate", value)
+      return
+    }
+
+    // Validate complete date
+    if (validateDateFormat(value)) {
+      handleChange("previousDocDate", value)
+    } else {
+      // You could show an error message here
+      console.log("Invalid date format. Please use DD/MM/YYYY")
+    }
   }
 
   return (
@@ -116,34 +146,15 @@ export function PreviousDocTab({ data, updateData }: PreviousDocTabProps) {
 
       <div className="space-y-4">
         <div>
-          <Label>முந்தைய ஆவண தேதி (Previous Document Date)</Label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant={"outline"}
-                className={cn(
-                  "w-full mt-1 pl-3 text-left font-normal border-purple-200 focus-visible:ring-purple-400",
-                  !formValues.previousDocDate && "text-muted-foreground",
-                )}
-              >
-                {formValues.previousDocDate ? (
-                  format(formValues.previousDocDate, "PPP")
-                ) : (
-                  <span>தேதியை தேர்ந்தெடுக்கவும்</span>
-                )}
-                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={formValues.previousDocDate || undefined}
-                onSelect={(date) => handleChange("previousDocDate", date)}
-                disabled={(date) => date > new Date()}
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
+          <Label htmlFor="previous-doc-date">முந்தைய ஆவண தேதி (Previous Document Date)</Label>
+          <Input
+            id="previous-doc-date"
+            placeholder="DD/MM/YYYY"
+            value={formValues.previousDocDate}
+            onChange={(e) => handleDateChange(e.target.value)}
+            className="mt-1 border-purple-200 focus-visible:ring-purple-400"
+          />
+          <p className="text-xs text-gray-500 mt-1">தேதியை DD/MM/YYYY வடிவத்தில் உள்ளிடவும்</p>
         </div>
 
         <div>
@@ -213,6 +224,25 @@ export function PreviousDocTab({ data, updateData }: PreviousDocTabProps) {
             </SelectTrigger>
             <SelectContent>
               {documentTypes.map((type) => (
+                <SelectItem key={type.id} value={type.id.toString()}>
+                  {type.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
+          <Label htmlFor="submission-type">ஆவணம் ஒப்படைப்பு வகை (Document Submission Type)</Label>
+          <Select
+            value={formValues.submissionTypeId}
+            onValueChange={(value) => handleChange("submissionTypeId", value)}
+          >
+            <SelectTrigger className="mt-1 border-purple-200 focus-visible:ring-purple-400">
+              <SelectValue placeholder="ஆவணம் ஒப்படைப்பு வகையைத் தேர்ந்தெடுக்கவும்" />
+            </SelectTrigger>
+            <SelectContent>
+              {submissionTypes.map((type) => (
                 <SelectItem key={type.id} value={type.id.toString()}>
                   {type.name}
                 </SelectItem>
