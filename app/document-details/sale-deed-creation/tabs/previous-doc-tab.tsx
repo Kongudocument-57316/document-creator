@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { DocumentDetailDialog } from "../components/document-detail-dialog"
 import { DeleteConfirmationDialog } from "../components/delete-confirmation-dialog"
-import { FileText, Eye, Edit, Trash2, FilePlus2 } from "lucide-react"
+import { FileText, Eye, Edit, Trash2, FilePlus2, Users } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
@@ -26,33 +26,33 @@ export function PreviousDocTab({ data, updateData, sellers = [] }: PreviousDocTa
   const [isEditing, setIsEditing] = useState(false)
   const [selectedSeller, setSelectedSeller] = useState<string>("")
   const [isForAllSellers, setIsForAllSellers] = useState(true)
+  const [isCommonDoc, setIsCommonDoc] = useState(true)
 
   const handleAddCommonDocument = (document: any) => {
-    const newCommonDocuments = [...commonDocuments, { ...document, id: Date.now() }]
+    const newCommonDocuments = [...commonDocuments, { ...document, id: Date.now().toString() }]
     setCommonDocuments(newCommonDocuments)
     updateData({ commonDocuments: newCommonDocuments, sellerDocuments })
-    setIsDetailOpen(false)
   }
 
   const handleAddSellerDocument = (document: any) => {
     const newDocument = {
       ...document,
-      id: Date.now(),
+      id: Date.now().toString(),
       sellerId: selectedSeller,
     }
     const newSellerDocuments = [...sellerDocuments, newDocument]
     setSellerDocuments(newSellerDocuments)
     updateData({ commonDocuments, sellerDocuments: newSellerDocuments })
-    setIsDetailOpen(false)
   }
 
   const handleEditDocument = (document: any, isCommon: boolean) => {
     setSelectedDocument({ ...document, isCommon })
     setIsEditing(true)
+    setIsCommonDoc(isCommon)
     setIsDetailOpen(true)
   }
 
-  const handleDeleteDocument = (documentId: number, isCommon: boolean) => {
+  const handleDeleteDocument = (documentId: string, isCommon: boolean) => {
     if (isCommon) {
       const newCommonDocuments = commonDocuments.filter((doc) => doc.id !== documentId)
       setCommonDocuments(newCommonDocuments)
@@ -79,13 +79,12 @@ export function PreviousDocTab({ data, updateData, sellers = [] }: PreviousDocTa
       setSellerDocuments(newSellerDocuments)
       updateData({ commonDocuments, sellerDocuments: newSellerDocuments })
     }
-    setIsDetailOpen(false)
-    setIsEditing(false)
   }
 
   const handleViewDocument = (document: any, isCommon: boolean) => {
     setSelectedDocument({ ...document, isCommon })
     setIsEditing(false)
+    setIsCommonDoc(isCommon)
     setIsDetailOpen(true)
   }
 
@@ -97,6 +96,7 @@ export function PreviousDocTab({ data, updateData, sellers = [] }: PreviousDocTa
   const openAddDocumentDialog = (isCommon = true) => {
     setSelectedDocument(null)
     setIsEditing(false)
+    setIsCommonDoc(isCommon)
     setIsDetailOpen(true)
     if (!isCommon && !selectedSeller && sellers.length > 0) {
       setSelectedSeller(sellers[0].id.toString())
@@ -107,6 +107,18 @@ export function PreviousDocTab({ data, updateData, sellers = [] }: PreviousDocTa
     const seller = sellers.find((s) => s.id.toString() === sellerId)
     return seller ? seller.name : "Unknown Seller"
   }
+
+  // Group documents by seller
+  const documentsBySeller = sellers.reduce((acc, seller) => {
+    const sellerDocs = sellerDocuments.filter((doc) => doc.sellerId === seller.id.toString())
+    if (sellerDocs.length > 0) {
+      acc[seller.id] = {
+        seller,
+        documents: sellerDocs,
+      }
+    }
+    return acc
+  }, {})
 
   return (
     <div className="space-y-6">
@@ -145,8 +157,13 @@ export function PreviousDocTab({ data, updateData, sellers = [] }: PreviousDocTa
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
                         <h4 className="font-medium text-purple-800">{document.documentNumber || "Document"}</h4>
-                        <p className="text-sm text-gray-600">{document.documentType || "Unknown Type"}</p>
-                        <p className="text-sm text-gray-600">{document.documentDate || "No Date"}</p>
+                        <p className="text-sm text-gray-600">{document.previousDocDate || "No Date"}</p>
+                        {document.sellerIds && document.sellerIds.length > 0 && (
+                          <div className="flex items-center mt-1 text-xs text-gray-500">
+                            <Users className="h-3 w-3 mr-1" />
+                            {document.sellerIds.length} விற்பனையாளர்(கள்)
+                          </div>
+                        )}
                       </div>
                       <div className="flex space-x-2">
                         <Button
@@ -243,63 +260,51 @@ export function PreviousDocTab({ data, updateData, sellers = [] }: PreviousDocTa
             </Card>
           ) : (
             <div className="space-y-4">
-              {sellers.length > 0 &&
-                sellers.map((seller) => {
-                  const sellerDocs = sellerDocuments.filter((doc) => doc.sellerId === seller.id.toString())
-                  if (sellerDocs.length === 0) return null
-
-                  return (
-                    <div key={seller.id} className="space-y-2">
-                      <h5 className="font-medium text-purple-700">{seller.name}</h5>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {sellerDocs.map((document) => (
-                          <Card
-                            key={document.id}
-                            className="border-purple-200 hover:border-purple-300 transition-colors"
-                          >
-                            <CardContent className="p-4">
-                              <div className="flex justify-between items-start">
-                                <div className="flex-1">
-                                  <h4 className="font-medium text-purple-800">
-                                    {document.documentNumber || "Document"}
-                                  </h4>
-                                  <p className="text-sm text-gray-600">{document.documentType || "Unknown Type"}</p>
-                                  <p className="text-sm text-gray-600">{document.documentDate || "No Date"}</p>
-                                </div>
-                                <div className="flex space-x-2">
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => handleViewDocument(document, false)}
-                                    className="border-purple-200 hover:bg-purple-50"
-                                  >
-                                    <Eye className="h-4 w-4 text-purple-600" />
-                                  </Button>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => handleEditDocument(document, false)}
-                                    className="border-purple-200 hover:bg-purple-50"
-                                  >
-                                    <Edit className="h-4 w-4 text-purple-600" />
-                                  </Button>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => handleConfirmDelete(document, false)}
-                                    className="border-purple-200 hover:bg-purple-50"
-                                  >
-                                    <Trash2 className="h-4 w-4 text-red-500" />
-                                  </Button>
-                                </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
-                    </div>
-                  )
-                })}
+              {Object.values(documentsBySeller).map((sellerData: any) => (
+                <div key={sellerData.seller.id} className="space-y-2">
+                  <h5 className="font-medium text-purple-700">{sellerData.seller.name}</h5>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {sellerData.documents.map((document: any) => (
+                      <Card key={document.id} className="border-purple-200 hover:border-purple-300 transition-colors">
+                        <CardContent className="p-4">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <h4 className="font-medium text-purple-800">{document.documentNumber || "Document"}</h4>
+                              <p className="text-sm text-gray-600">{document.previousDocDate || "No Date"}</p>
+                            </div>
+                            <div className="flex space-x-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleViewDocument(document, false)}
+                                className="border-purple-200 hover:bg-purple-50"
+                              >
+                                <Eye className="h-4 w-4 text-purple-600" />
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleEditDocument(document, false)}
+                                className="border-purple-200 hover:bg-purple-50"
+                              >
+                                <Edit className="h-4 w-4 text-purple-600" />
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleConfirmDelete(document, false)}
+                                className="border-purple-200 hover:bg-purple-50"
+                              >
+                                <Trash2 className="h-4 w-4 text-red-500" />
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </Card>
@@ -309,13 +314,15 @@ export function PreviousDocTab({ data, updateData, sellers = [] }: PreviousDocTa
         isOpen={isDetailOpen}
         onClose={() => setIsDetailOpen(false)}
         document={selectedDocument}
-        isEditing={isEditing}
-        onAdd={selectedDocument?.isCommon ? handleAddCommonDocument : handleAddSellerDocument}
-        onUpdate={handleUpdateDocument}
-        title={isEditing ? "ஆவண விவரங்களைத் திருத்து" : "புதிய ஆவணத்தைச் சேர்க்க"}
+        onSave={handleUpdateDocument}
+        onAdd={isCommonDoc ? handleAddCommonDocument : handleAddSellerDocument}
+        readOnly={!isEditing && selectedDocument !== null}
+        title={selectedDocument ? (isEditing ? "ஆவண விவரங்களைத் திருத்து" : "ஆவண விவரங்கள்") : "புதிய ஆவணத்தைச் சேர்க்க"}
         sellers={sellers}
+        allowSellerSelection={!isCommonDoc || (selectedDocument && !selectedDocument.isCommon)}
         selectedSeller={selectedSeller}
-        isCommon={selectedDocument?.isCommon ?? true}
+        isCommon={isCommonDoc}
+        isEditing={isEditing}
       />
 
       <DeleteConfirmationDialog

@@ -13,12 +13,16 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 interface DocumentDetailDialogProps {
   isOpen: boolean
   onClose: () => void
-  document: any
+  document?: any
   onSave?: (updatedDoc: any) => void
+  onAdd?: (newDoc: any) => void
   readOnly?: boolean
   title?: string
   sellers?: any[]
   allowSellerSelection?: boolean
+  selectedSeller?: string
+  isCommon?: boolean
+  isEditing?: boolean
 }
 
 export function DocumentDetailDialog({
@@ -26,12 +30,16 @@ export function DocumentDetailDialog({
   onClose,
   document,
   onSave,
+  onAdd,
   readOnly = false,
   title = "ஆவண விவரங்கள்",
   sellers = [],
   allowSellerSelection = false,
+  selectedSeller = "",
+  isCommon = true,
+  isEditing = false,
 }: DocumentDetailDialogProps) {
-  const [formData, setFormData] = useState(document || {})
+  const [formData, setFormData] = useState<any>({})
   const [subRegistrarOffices, setSubRegistrarOffices] = useState([])
   const [bookNumbers, setBookNumbers] = useState([])
   const [documentTypes, setDocumentTypes] = useState([])
@@ -44,20 +52,32 @@ export function DocumentDetailDialog({
 
   useEffect(() => {
     if (isOpen) {
-      setFormData(document || {})
+      // Initialize form data
+      if (document) {
+        setFormData({ ...document })
+      } else {
+        setFormData({
+          previousDocDate: "",
+          documentNumber: "",
+          documentYear: new Date().getFullYear().toString(),
+          isCommon: isCommon,
+        })
+      }
 
       // Initialize selected sellers
       if (document && document.sellerIds) {
         setSelectedSellers(Array.isArray(document.sellerIds) ? document.sellerIds : [document.sellerIds])
       } else if (document && document.sellerId) {
         setSelectedSellers([document.sellerId])
+      } else if (selectedSeller) {
+        setSelectedSellers([selectedSeller])
       } else {
         setSelectedSellers([])
       }
 
       fetchReferenceData()
     }
-  }, [isOpen, document])
+  }, [isOpen, document, selectedSeller, isCommon])
 
   async function fetchReferenceData() {
     try {
@@ -86,7 +106,7 @@ export function DocumentDetailDialog({
   }
 
   const handleChange = (field: string, value: any) => {
-    setFormData((prev) => ({
+    setFormData((prev: any) => ({
       ...prev,
       [field]: value,
     }))
@@ -118,28 +138,33 @@ export function DocumentDetailDialog({
   }
 
   const handleSave = () => {
-    if (onSave) {
-      // Include selected sellers in the form data
-      const updatedData = {
-        ...formData,
-        sellerIds: selectedSellers,
-        // For backward compatibility
-        sellerId: selectedSellers.length > 0 ? selectedSellers[0] : null,
-        sellerName: selectedSellers.length > 0 ? sellers.find((s) => s.id === selectedSellers[0])?.name : null,
-      }
-      onSave(updatedData)
+    // Include selected sellers in the form data
+    const updatedData = {
+      ...formData,
+      sellerIds: selectedSellers,
+      // For backward compatibility
+      sellerId: selectedSellers.length > 0 ? selectedSellers[0] : null,
+      sellerName: selectedSellers.length > 0 ? sellers.find((s) => s.id === selectedSellers[0])?.name : null,
+      isCommon: isCommon,
     }
+
+    if (isEditing && onSave) {
+      onSave(updatedData)
+    } else if (onAdd) {
+      onAdd(updatedData)
+    }
+
     onClose()
   }
 
   // Function to get name by ID from a reference list
-  const getNameById = (list, id) => {
+  const getNameById = (list: any[], id: string | number) => {
     const item = list.find((item) => item.id?.toString() === id?.toString())
     return item ? item.name : ""
   }
 
   // Function to get book number by ID
-  const getBookNumberById = (id) => {
+  const getBookNumberById = (id: string | number) => {
     const book = bookNumbers.find((book) => book.id?.toString() === id?.toString())
     return book ? book.number : ""
   }

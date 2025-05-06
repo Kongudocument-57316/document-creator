@@ -12,8 +12,9 @@ import { WitnessTab } from "./tabs/witness-tab"
 import { PaymentTab } from "./tabs/payment-tab"
 import { DeedTab } from "./tabs/deed-tab"
 import { useRouter } from "next/navigation"
-import { Home, ArrowLeft, FileText } from "lucide-react"
+import { Home, ArrowLeft, Save } from "lucide-react"
 import { SimplePdfGenerator } from "./simple-pdf-generator"
+import { PreviewDialog } from "./components/preview-dialog"
 
 export function SaleDeedCreationForm() {
   const router = useRouter()
@@ -89,20 +90,19 @@ export function SaleDeedCreationForm() {
               >
                 ஆவண அடிப்படை விவரங்கள்
               </TabsTrigger>
-             
               <TabsTrigger
                 value="buyer"
                 className="data-[state=active]:bg-purple-600 data-[state=active]:text-white py-2 text-sm"
               >
                 வாங்குபவர் விவரங்கள்
               </TabsTrigger>
-               <TabsTrigger
+              <TabsTrigger
                 value="seller"
                 className="data-[state=active]:bg-purple-600 data-[state=active]:text-white py-2 text-sm"
               >
                 விற்பனையாளர் விவரங்கள்
               </TabsTrigger>
-               <TabsTrigger
+              <TabsTrigger
                 value="previous-doc"
                 className="data-[state=active]:bg-purple-600 data-[state=active]:text-white py-2 text-sm"
               >
@@ -126,7 +126,6 @@ export function SaleDeedCreationForm() {
               >
                 சாட்சி விவரங்கள்
               </TabsTrigger>
-             
             </TabsList>
           </div>
 
@@ -172,12 +171,13 @@ export function SaleDeedCreationForm() {
           >
             முந்தைய
           </Button>
-          <div className="space-x-2">
+          <div className="flex flex-wrap gap-2 justify-end">
             <Button variant="outline" className="border-purple-300 hover:bg-purple-50 text-purple-700">
-              <FileText className="h-4 w-4 mr-2" />
+              <Save className="h-4 w-4 mr-2" />
               சேமி
             </Button>
-            <SimplePdfGenerator formData={formData} />
+            <PreviewDialog formData={formData} />
+            <SimplePdfGenerator formData={formData} title="கிரைய ஆவணம்" />
             <Button
               onClick={goToNextTab}
               disabled={activeTab === "previous-doc"}
