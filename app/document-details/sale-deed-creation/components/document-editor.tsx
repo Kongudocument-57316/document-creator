@@ -1,425 +1,712 @@
 "use client"
 
-import { useEffect, useState, useRef } from "react"
+import type React from "react"
+
+import { useState, useEffect, useRef } from "react"
 import { Editor } from "@tinymce/tinymce-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Loader2, Save, FileDown, Printer } from "lucide-react"
-import { getSupabaseBrowserClient } from "@/lib/supabase"
+import { Card } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
+import { FileText, Download, Upload, RefreshCw, Plus, Save, Eye } from "lucide-react"
+import { getSupabaseBrowserClient } from "@/lib/supabase"
+import { DocumentPreview } from "./document-preview"
 
 interface DocumentEditorProps {
   initialContent?: string
-  documentId?: string
-  templateId?: string
+  onSave?: (content: string) => void
   formData: any
-  onSave: (content: string) => Promise<void>
 }
 
-export function DocumentEditor({ initialContent = "", documentId, templateId, formData, onSave }: DocumentEditorProps) {
+export function DocumentEditor({ initialContent = "", onSave, formData }: DocumentEditorProps) {
   const [content, setContent] = useState(initialContent)
-  const [isLoading, setIsLoading] = useState(true)
-  const [isSaving, setIsSaving] = useState(false)
-  const [template, setTemplate] = useState<string>("")
+  const [templates, setTemplates] = useState<any[]>([])
+  const [selectedTemplate, setSelectedTemplate] = useState("")
+  const [newTemplateName, setNewTemplateName] = useState("")
+  const [isFieldDialogOpen, setIsFieldDialogOpen] = useState(false)
+  const [activeTab, setActiveTab] = useState("editor")
   const editorRef = useRef<any>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const supabase = getSupabaseBrowserClient()
 
   useEffect(() => {
-    async function loadTemplate() {
-      try {
-        setIsLoading(true)
-
-        // If we have a document ID, load the existing document
-        if (documentId) {
-          const { data, error } = await supabase
-            .from("sale_deed_documents")
-            .select("content")
-            .eq("id", documentId)
-            .single()
-
-          if (error) throw error
-          if (data?.content) {
-            setContent(data.content)
-            return
-          }
-        }
-
-        // Otherwise load a template
-        const templateIdToUse = templateId || "default"
-        const { data, error } = await supabase
-          .from("document_templates")
-          .select("content")
-          .eq("id", templateIdToUse)
-          .single()
-
-        if (error) {
-          // If template not found, use default template
-          setTemplate(getDefaultTemplate())
-        } else if (data?.content) {
-          setTemplate(data.content)
-        } else {
-          setTemplate(getDefaultTemplate())
-        }
-      } catch (error) {
-        console.error("Error loading template:", error)
-        toast.error("டெம்ப்ளேட் ஏற்றுவதில் பிழை")
-        setTemplate(getDefaultTemplate())
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    loadTemplate()
-  }, [documentId, templateId, supabase])
+    fetchTemplates()
+  }, [])
 
   useEffect(() => {
-    if (template && !initialContent) {
-      // Replace placeholders with actual data
-      const processedTemplate = replacePlaceholders(template, formData)
-      setContent(processedTemplate)
+    // Update content when initialContent changes
+    if (initialContent) {
+      setContent(initialContent)
     }
-  }, [template, formData, initialContent])
+  }, [initialContent])
 
-  const replacePlaceholders = (template: string, data: any) => {
-    // Basic placeholder replacement
-    let result = template
-
-    // Replace buyer details
-    if (Array.isArray(data.buyer) && data.buyer.length > 0) {
-      // Handle multiple buyers
-      const isSingleBuyer = data.buyer.length === 1
-
-      // Replace BUYER_PARTY_NAME with all buyer names
-      const buyerNames = data.buyer.map((buyer: any, index: number) => `${index + 1}. ${buyer.name}`).join(", ")
-
-      result = result.replace(/BUYER PARTY NAME/g, buyerNames)
-
-      // Replace other buyer details with the first buyer's details
-      if (data.buyer[0]) {
-        const buyer = data.buyer[0]
-        result = result.replace(/BUYER BANK NAME/g, buyer.bank_name || "")
-        result = result.replace(/BUYER BANK BRANCH/g, buyer.bank_branch || "")
-        result = result.replace(/BUYER ACCOUNT TYPE/g, buyer.account_type || "")
-        result = result.replace(/BUYER ACCOUNT NO/g, buyer.account_number || "")
-      }
-
-      // Update singular/plural terms
-      if (!isSingleBuyer) {
-        result = result.replace(/வாங்குபவர்/g, "வாங்குபவர்கள்")
-        // Add other plural transformations as needed
-      }
+  const fetchTemplates = async () => {
+    try {
+      const { data, error } = await supabase.from("document_templates").select("*").order("name")
+      if (error) throw error
+      setTemplates(data || [])
+    } catch (error: any) {
+      console.error("Error fetching templates:", error.message)
+      toast.error("வார்ப்புருக்களைப் பெறுவதில் பிழை")
     }
-
-    // Replace seller details
-    if (Array.isArray(data.seller) && data.seller.length > 0) {
-      // Handle multiple sellers
-      const isSingleSeller = data.seller.length === 1
-
-      // Replace SELLER_PARTY_NAME with all seller names
-      const sellerNames = data.seller.map((seller: any, index: number) => `${index + 1}. ${seller.name}`).join(", ")
-
-      result = result.replace(/SELLER PARTY NAME/g, sellerNames)
-
-      // Replace other seller details with the first seller's details
-      if (data.seller[0]) {
-        const seller = data.seller[0]
-        result = result.replace(/SELLER BANK NAME/g, seller.bank_name || "")
-        result = result.replace(/SELLER BANK BRANCH/g, seller.bank_branch || "")
-        result = result.replace(/SELLER ACCOUNT TYPE/g, seller.account_type || "")
-        result = result.replace(/SELLER ACCOUNT NO/g, seller.account_number || "")
-      }
-
-      // Update singular/plural terms
-      if (!isSingleSeller) {
-        result = result.replace(/எழுதிக்கொடுப்பவர்/g, "எழுதிக்கொடுப்பவர்கள்")
-        // Add other plural transformations as needed
-      }
-    }
-
-    // Replace payment details
-    if (data.payment) {
-      result = result.replace(/AMOUNT/g, data.payment.totalAmount || "")
-      result = result.replace(/AMOUNT IN WORDS/g, data.payment.amountInWords || "")
-
-      // Replace transaction details
-      if (data.payment.paymentMethod === "cheque") {
-        result = result.replace(/CHEQUE NO/g, data.payment.chequeNumber || "")
-      } else if (data.payment.paymentMethod === "dd") {
-        result = result.replace(/DD NO/g, data.payment.ddNumber || "")
-      } else if (data.payment.paymentMethod === "rtgs") {
-        result = result.replace(/RTGS TRANSACTION NO/g, data.payment.rtgsNumber || "")
-      } else if (data.payment.paymentMethod === "neft") {
-        result = result.replace(/NEFT TRANSACTION NO/g, data.payment.neftNumber || "")
-      } else if (data.payment.paymentMethod === "imps") {
-        result = result.replace(/IMPS TRANSACTION NO/g, data.payment.impsNumber || "")
-      }
-
-      // Replace transaction date
-      if (data.payment.paymentDate) {
-        result = result.replace(/TRANSACTION DATE/g, data.payment.paymentDate || "")
-      }
-    }
-
-    // Replace property details
-    if (data.property) {
-      result = result.replace(/DISTRICT/g, data.property.district || "")
-      result = result.replace(/PINCODE/g, data.property.pincode || "")
-      result = result.replace(/TALUK/g, data.property.taluk || "")
-      result = result.replace(/ADDRESS LINE/g, data.property.addressLine || "")
-      result = result.replace(/DOOR NO/g, data.property.doorNo || "")
-
-      // Replace property measurements
-      result = result.replace(/SQ FEET/g, data.property.areaInSqFt || "")
-      result = result.replace(/SQ METER/g, data.property.areaInSqMt || "")
-      result = result.replace(/GUIDELINE VALUE/g, data.property.guidelineValue || "")
-
-      // Replace property boundaries
-      result = result.replace(/NORTH BOUNDARY/g, data.property.northBoundary || "")
-      result = result.replace(/SOUTH BOUNDARY/g, data.property.southBoundary || "")
-      result = result.replace(/EAST BOUNDARY/g, data.property.eastBoundary || "")
-      result = result.replace(/WEST BOUNDARY/g, data.property.westBoundary || "")
-    }
-
-    // Replace deed details
-    if (data.deed) {
-      result = result.replace(/YEAR/g, data.deed.year || "")
-      result = result.replace(/MONTH/g, data.deed.month || "")
-      result = result.replace(/DATE/g, data.deed.day || "")
-
-      // Replace document details
-      if (data.previousDoc) {
-        if (data.previousDoc.commonDocuments && data.previousDoc.commonDocuments.length > 0) {
-          const doc = data.previousDoc.commonDocuments[0]
-          result = result.replace(/PR DOCUMENT DATE/g, doc.documentDate || "")
-          result = result.replace(/PR DOCUMENT YEAR/g, doc.documentYear || "")
-          result = result.replace(/PR DOCUMENT NO/g, doc.documentNumber || "")
-          result = result.replace(/PR DOCUMENT TYPE/g, doc.documentType || "")
-          result = result.replace(/PR BOOK NO/g, doc.bookNumber || "")
-        }
-      }
-    }
-
-    // Replace witness details
-    if (Array.isArray(data.witness) && data.witness.length > 0) {
-      // Handle multiple witnesses
-      const isSingleWitness = data.witness.length === 1
-
-      // Replace WITNESS_NAME with all witness names
-      const witnessNames = data.witness.map((witness: any, index: number) => `${index + 1}. ${witness.name}`).join(", ")
-
-      result = result.replace(/WITNESS NAME/g, witnessNames)
-
-      // Update singular/plural terms
-      if (!isSingleWitness) {
-        result = result.replace(/சாட்சி/g, "சாட்சிகள்")
-        // Add other plural transformations as needed
-      }
-    }
-
-    return result
   }
 
-  const getDefaultTemplate = () => {
-    return `
-    <h1 style="text-align: center;">கிரைய ஆவணம்</h1>
-    <p>கிரையம் ரூ.AMOUNT/-</p>
-    <p>YEAR-ம் வருடம் MONTH மாதம் DATE-ம் தேதியில்</p>
-    <p>DISTRICT மாவட்டம்-PINCODE, TALUK வட்டம், ADDRESS LINE 123, இதில் எண்.DOOR NO என்ற முகவரியில் வசித்து வருபவரும், RELATIONS NAME அவர்களின் RELATIONSHIP TYPE PARTY AGE வயதுடைய PARTY NAME (ஆதார் அடையாள அட்டை எண்.AADHAR NO, அலைபேசி எண்.PHONE NO) ஆகிய தங்களுக்கு</p>
-    <p>DISTRICT மாவட்டம்-PINCODE, TALUK வட்டம், ADDRESS LINE 123, இதில் எண்.DOOR NO என்ற முகவரியில் வசித்து வருபவரும், RELATIONS NAME அவர்களின் RELATIONSHIP TYPE PARTY AGE வயதுடைய PARTY NAME (ஆதார் அடையாள அட்டை எண்.AADHAR NO, அலைபேசி எண்.PHONE NO) ஆகிய நான் எழுதிக் கொடுத்த சத்தகிரைய சாசனபத்திரத்திற்கு விவரம் என்னவென்றால்.</p>
-    <p>எனக்கு உரித்த PR DOCUMENT DATE/MONTH/YEAR-ம் தேதியில், SUBREGISTER OFFICE சார்பதிவாளர் அலுவலகத்தில் PR BOOK NO புத்தகம் PR DOCUMENT YEAR-ம் ஆண்டின் PR DOCUMENT NO -ம் என்னாக பதிவு செய்யப்பட்ட PR DOCUMENT TYPE ஆவணத்தின் படி பாத்தியப்பட்டதாகும்</p>
-    <p>மேற்படி எனக்கில் பாத்தியப்பட்டு என்னுடைய அனுபோக சொந்தத்தில் இருந்து வருகிற இதனாலிற்கண்டவாறு சொத்தை நான் தங்களுக்கு ரூ.AMOUNT/-ரூபாய் AMOUNT IN WORDS மட்டும் விலைக்கு பேசி கொடுப்பதாக ஒப்புக்கொண்டு மேற்படி கிரையத் தொகையை கீழ்கண்ட சாட்சிகள் முன்பாக நான் தங்களிடமிருந்து பெற்றுக்கொண்டு கீழ்கண்ட சொத்துக்கள் இன்று தங்களுக்கு சத்தகிரையமும் கைவசமும் செய்து கொடுத்திருக்கின்றேன்</p>
-    <p>மேற்படி எனக்கில் பாத்தியப்பட்டு என்னுடைய அனுபோக சொந்தத்தில் இருந்து வருகிற இதனாலிற்கண்டவாறு சொத்தை நான் தங்களுக்கு ரூ.AMOUNT/-ரூபாய் AMOUNT IN WORDS மட்டும் விலைக்கு பேசி கொடுப்பதாக ஒப்புக்கொண்டு மேற்படி கிரையத் தொகை எனக்கு வாங்கியதற்கான விவரம்:-</p>
-    <p>கிரையம் பெறும் BUYER PARTY NAME அவர்களின் BUYER BANK NAME, BUYER BANK BRANCH, BUYER ACCOUNT TYPE ACCOUNT NO.-க்கு எனக்கு காட்சினால் எண்.CHEQUE NO-மூலம், கிரையம் எழுதி கொடுக்கும் SELLER PARTY NAME அவர்களின் பெயரில் வழங்கிய தொகை ரூ.AMOUNT/-ரூபாய் AMOUNT IN WORDS மட்டும் TRANSACTION DATE/MONTH/YEAR-ம் தேதியில் காசாகி விட்டபடியால், கீழ்கண்ட சொத்துக்கள் இன்று தங்களுக்கு சத்தக் கிரையமும் கைவசமும் செய்து கொடுத்திருக்கின்றேன்.</p>
-    <p>கிரையம் பெறும் BUYER PARTY NAME அவர்களின் BUYER BANK NAME, BUYER BANK BRANCH, BUYER ACCOUNT TYPE ACCOUNT NO.-க்கு எனக்கு காட்சினால் எண்.DD NO-மூலம், கிரையம் எழுதி கொடுக்கும் SELLER PARTY NAME அவர்களின் பெயரில் வழங்கிய தொகை ரூ.AMOUNT/-ரூபாய் AMOUNT IN WORDS மட்டும் TRANSACTION DATE/MONTH/YEAR-ம் தேதியில் காசாகி விட்டபடியால், கீழ்கண்ட சொத்துக்கள் இன்று தங்களுக்கு சத்தக் கிரையமும் கைவசமும் செய்து கொடுத்திருக்கின்றேன்.</p>
-    <p>கிரையம் பெறும் BUYER PARTY NAME அவர்களின் BUYER BANK NAME, BUYER BANK BRANCH, BUYER ACCOUNT TYPE ACCOUNT NO.-க்கிருந்து, எனது SELLER BANK NAME, SELLER BANK BRANCH, SELLER ACCOUNT TYPE ACCOUNT NO.-க்கு வங்கி மின்னணு பரிமாற்றத்தின் எண்.RTGS TRANSACTION NO-மூலம் ரூ.AMOUNT/-ரூபாய் AMOUNT IN WORDS மட்டும் TRANSACTION DATE/MONTH/YEAR-ம் தேதியில் எனக்கு வரவாகி விட்டபடியால், கீழ்கண்ட சொத்துக்கள் இன்று தங்களுக்கு சத்தக் கிரையமும் கைவசமும் செய்து கொடுத்திருக்கின்றேன்.</p>
-    <p>கிரையம் பெறும் BUYER PARTY NAME அவர்களின் BUYER BANK NAME, BUYER BANK BRANCH, BUYER ACCOUNT TYPE ACCOUNT NO.-க்கிருந்து, எனது SELLER BANK NAME, SELLER BANK BRANCH, SELLER ACCOUNT TYPE ACCOUNT NO.-க்கு வங்கி மின்னணு பரிமாற்றத்தின் எண்.NEFT TRANSACTION NO-மூலம் ரூ.AMOUNT/-ரூபாய் AMOUNT IN WORDS மட்டும் TRANSACTION DATE/MONTH/YEAR-ம் தேதியில் எனக்கு வரவாகி விட்டபடியால், கீழ்கண்ட சொத்துக்கள் இன்று தங்களுக்கு சத்தக் கிரையமும் கைவசமும் செய்து கொடுத்திருக்கின்றேன்.</p>
-    <p>கிரையம் பெறும் BUYER PARTY NAME அவர்களின் BUYER BANK NAME, BUYER BANK BRANCH, BUYER ACCOUNT TYPE ACCOUNT NO.-க்கிருந்து, எனது SELLER BANK NAME, SELLER BANK BRANCH, SELLER ACCOUNT TYPE ACCOUNT NO.-க்கு வங்கி மின்னணு பரிமாற்றத்தின் எண்.IMPS TRANSACTION NO-மூலம் ரூ.AMOUNT/-ரூபாய் AMOUNT IN WORDS மட்டும் TRANSACTION DATE/MONTH/YEAR-ம் தேதியில் எனக்கு வரவாகி விட்டபடியால், கீழ்கண்ட சொத்துக்கள் இன்று தங்களுக்கு சத்தக் கிரையமும் கைவசமும் செய்து கொடுத்திருக்கின்றேன்.</p>
-    <p>கிரைய சொத்தை இது முதல் தாங்கள் சர்வ சுதந்திர பாத்தியத்துடனும் தானாதி விலிங்கான விற்கினையாளுக்குரிய போக்கியமாகவும் தாங்கள் அனுபவித்துக்கொள்ள வேண்டியதாகவும்</p>
-    <p>கிரையச் சொத்தை குறித்து இனியில் எனக்கும், எனக்கு பின்வட்ட எனது இதர ஆண், பெண் வாரிசுகளுக்கும் இனி எவ்வித பாத்தியமும் சம்பந்தமும் பின் தொடர்ந்தும் உரிமையும் இல்லை</p>
-    <p>கிரைய சொத்துக்களின் மேயில் யாருக்கும் முன் விலைக்கு விலையம் கடன், போட்ட நடவடிக்கைகள் முதலியன ஏதுமில்லையென்றும் உண்மையாகவும் உறுதியாகவும் கொள்கின்றேன்</p>
-    <p>பின்வரும் அட்டவடி குருகால் ஏற்படும் முன் விலைக்கு விலையம் அடமானம், கிரைய உடன்படிக்கை, கோர்ட் நடவடிக்கைகள், நோட்டீசும், ரஜிஸ்டர் மார்க்கேஜ் முகவியன ஏதுமிருப்பதாக தெரியவரும் பட்சத்தில் அவற்றை நானே முன்னின்று எனது சொந்த செலவிலும், சொந்த பொறுப்பிலும் எனது இதர சொத்துக்களைக் கொண்டு நானே முன்னின்று தீர்த்துக் கொள்கே இதன் மூலம் உறுதி கூறுகிறேன்</p>
-    <p>கிரைய பத்திரத்தில் எழுதிக்கொடுப்பவருக்கு முழு உரிமையும் கைவசமும் உள்ளது என எழுதியிருப்பதற்கு, எழுதிக்கொடுப்பவருக்கு, எழுதிக்கொடுப்பவர் அளித்த பதிவுருக்களை எழுதியாளுவான் ஆய்வு செய்து, அதன் மேரில் இந்த கிரைய ஆவணம் தயார் செய்யப்பட்டு எழுதியாளுவான் எழுதிக்கொடுப்பவர் என இரு சாப்பிடாக் முத்திரையில் கேட்டு என கிரைய அடைந்தவர் பெற்றுக் கொள்ள அவர் அடைந்தவன் பெற்றும் கிரைய ஆவணம் பதிவு செய்யப்படுகிறது.</p>
-    <p>பிற்காலத்தில் கிரைய ஆவணத்தில் ஏதேனும் பிழைகள் ஏற்பட்டாக வாங்குபவர் கூறினால், சம்பந்தப்பட்ட சாப்பிடானார் அலுவலகம் வந்து பிழை திருத்தம் ஆவணத்தில் ஏற்படாமல் பிற்பி பிரச்சனைகளும் பெற்றுக் கொள்ளாமல் பிழையைத் திருத்திக் கொள்ள நான் கடமைப்பட்டவர் ஆவேன்.</p>
-    <p>மேற்படி நான் பிழையதிருத்தல் பதிவில் எழுதிக்கொள்க தவறினால், மேற்படி கிரையம் பெறும் தாங்கள் எழுதியாளுவர் ஆவணம் எழுதி, அதன் மூலம் பிழையைத் திருத்திக் கொள்ள வேண்டியது</p>
-    <p>கீழ்கண்ட கிரைய சொத்தின் பட்டா தாக்கள் பெயருக்கு மாறும் பொருட்டு பட்டா மாறுதல் மனுவில் இதனுடன் தாக்கல் செய்கின்றேன்</p>
-    <p>மேலே சொன்ன PR BOOK NO புத்தகம் PR DOCUMENT NO/PR DOCUMENT YEAR என PR DOCUMENT TYPE ஆவணத்தின் PR DOCUMENT ORIGINAL/ OR XEROX COPY இக்கிரைய ஆவணத்திற்கு ஆதாரமாக தங்களுக்கு கொடுத்திருக்கின்றேன்.</p>
-    <p>மேலும் தனிக்கையின் போது இந்த ஆவணம் தொடர்பாக அரசுக்கு இழப்பு ஏற்படின் அத்தொகையை கிரையம் பெற்றவர் செலுத்தவும் உறுதியளிக்கிறார்</p>
-    <p>பின்வரும் அட்டவடி குருகால் ஏற்படும் முன் விலைக்கு விலையம்</p>
-    <p>மனை எண்:-site no-க்கு கொகுமுறியும், அளவு விவரமும்:-</p>
-    <p>-----------வடக்கு</p>
-    <p>-----------கிழக்கு</p>
-    <p>-----------தெற்கு</p>
-    <p>-----------மேற்கு</p>
-    <p>இதன் மத்தியில் கடந்த கிழக்குமேற் SQ FEET அடி, தென்வடக்கு கிழக்குமேற் SQ FEET அடி, கிழக்கும் மேற்கிலும் SQ FEET அடி, தென்வடக்கிலும் SQ FEET அடி, ஆகியவை SQ FEET சதுரடி.ப்ர அளவுள்ள இடம் மற்றும் அதிலுள்ள பூராவும்</p>
-    <p>மேற்படி இடத்தில் கட்டிட எல்லைகள் மேற்படி F#SF NO மற் காரையானது F#SF SUBDIVISION NO மற் காரணை என சப்டிவிஷன் பதிவு எஃப் F# SF new SUBDIVISION NO மற் காரணை என சப்டிவிஷன் உள்ளது</p>
-    <p>மேற்படி மனையப்பிரிவில் விட்டப்பட்டுள்ள சகல விதமான காலணிகளிலும், சகல விதமான காணா வண்டி வாகனங்களுக்கும் பொதுவில் போக வர உள்ள மார்க்க உபாத்தியங்கள் சகிதம் பூராவும்</p>
-    <p>SQ FEET சதுரடி (SQ METER சதுர மீட்டர் ரூ.GUIDELINE VALUE)</p>
-    <p>இடத்தின் மதிப்பு ரூ. AMOUNT/-</p>
-    <p>கட்டபத்தி மதிப்பு ரூ. AMOUNT/-</p>
-    <p>ஆக மொத்த மதிப்பு ரூ. TOTAL/-</p>
-    <p>எழுதிக்கொடுப்பவர் எழுதிவாங்குபவர்</p>
-    <p>சாட்சிகள் ----------------------------------------------PARTY NAME, தந்தை/RELATIONS NAME, வயது எண்.DOOR NO, ADDRESS LINE 123, TALUK வட்டம், DISTRICT மாவட்டம்-PINCODE. (வயது-PARTY AGE) (ஆதார் அடையாள அட்டை எ  ADDRESS LINE 123, TALUK வட்டம், DISTRICT மாவட்டம்-PINCODE. (வயது-PARTY AGE) (ஆதார் அடையாள அட்டை எண்.AADHAR NO)
-
-    <p>2. -------------------------------------------- PARTY NAME, தந்தை/RELATIONS NAME, வயது எண்.DOOR NO, ADDRESS LINE 123, TALUK வட்டம், DISTRICT மாவட்டம்-PINCODE. (வயது-PARTY AGE) (ஆதார் அடையாள அட்டை எண்.AADHAR NO)</p>
-    <p>கண்ணியில் பட்சம் செய்து ஆவணம் தயார் செய்தவர்-NAME (தொலைபேசி எண்.PHONE NO)</p>
-    `
+  const handleEditorChange = (content: string) => {
+    setContent(content)
   }
 
-  const handleSaveContent = async () => {
-    if (!editorRef.current) return
+  const handleSave = () => {
+    if (onSave) {
+      onSave(content)
+      toast.success("ஆவணம் வெற்றிகரமாக சேமிக்கப்பட்டது")
+    }
+  }
+
+  const handleTemplateSelect = async (templateId: string) => {
+    if (!templateId) return
 
     try {
-      setIsSaving(true)
-      const currentContent = editorRef.current.getContent()
-      await onSave(currentContent)
-      toast.success("ஆவணம் வெற்றிகரமாக சேமிக்கப்பட்டது")
-    } catch (error) {
-      console.error("Error saving document:", error)
-      toast.error("ஆவணத்தை சேமிப்பதில் பிழை")
-    } finally {
-      setIsSaving(false)
+      const { data, error } = await supabase.from("document_templates").select("content").eq("id", templateId).single()
+      if (error) throw error
+
+      if (data && data.content) {
+        setContent(data.content)
+        if (editorRef.current) {
+          editorRef.current.setContent(data.content)
+        }
+        toast.success("வார்ப்புரு ஏற்றப்பட்டது")
+      }
+    } catch (error: any) {
+      console.error("Error loading template:", error.message)
+      toast.error("வார்ப்புருவை ஏற்றுவதில் பிழை")
     }
   }
 
-  const handlePrintPreview = () => {
-    if (!editorRef.current) return
+  const handleSaveTemplate = async () => {
+    if (!newTemplateName.trim()) {
+      toast.error("வார்ப்புரு பெயரை உள்ளிடவும்")
+      return
+    }
 
-    const content = editorRef.current.getContent()
-    const printWindow = window.open("", "_blank")
+    try {
+      const { data, error } = await supabase
+        .from("document_templates")
+        .insert([{ name: newTemplateName, content: content }])
+        .select()
 
-    if (printWindow) {
-      printWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
+      if (error) throw error
+
+      toast.success("வார்ப்புரு சேமிக்கப்பட்டது")
+      setNewTemplateName("")
+      fetchTemplates()
+    } catch (error: any) {
+      console.error("Error saving template:", error.message)
+      toast.error("வார்ப்புருவை சேமிப்பதில் பிழை")
+    }
+  }
+
+  const handleExportWord = () => {
+    const htmlContent = content
+    const blob = new Blob(
+      [
+        `
+      <html>
         <head>
-          <title>கிரைய ஆவணம் அச்சிடுதல்</title>
+          <meta charset="UTF-8">
           <style>
-            body {
-              font-family: Arial, sans-serif;
-              line-height: 1.6;
-              margin: 20mm;
-            }
-            @media print {
-              body {
-                margin: 0;
-                padding: 15mm;
-              }
-            }
+            body { font-family: 'Arial Unicode MS', 'Nirmala UI', sans-serif; }
+            p { margin: 0; padding: 0; line-height: 1.5; }
           </style>
         </head>
-        <body>
-          ${content}
-          <script>
-            window.onload = function() {
-              setTimeout(function() {
-                window.print();
-              }, 500);
-            }
-          </script>
-        </body>
-        </html>
-      `)
-      printWindow.document.close()
+        <body>${htmlContent}</body>
+      </html>
+    `,
+      ],
+      { type: "application/msword" },
+    )
+
+    const link = document.createElement("a")
+    link.href = URL.createObjectURL(blob)
+    link.download = "document.doc"
+    link.click()
+    URL.revokeObjectURL(link.href)
+  }
+
+  const handleImportWord = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click()
     }
   }
 
-  const handleExportPDF = () => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const formData = new FormData()
+    formData.append("file", file)
+
+    try {
+      const response = await fetch("/api/convert-docx-to-html", {
+        method: "POST",
+        body: formData,
+      })
+
+      if (!response.ok) {
+        throw new Error("Conversion failed")
+      }
+
+      const data = await response.json()
+      if (data.html) {
+        setContent(data.html)
+        if (editorRef.current) {
+          editorRef.current.setContent(data.html)
+        }
+        toast.success("Word ஆவணம் வெற்றிகரமாக இறக்குமதி செய்யப்பட்டது")
+      }
+    } catch (error) {
+      console.error("Error importing Word document:", error)
+      toast.error("Word ஆவணத்தை இறக்குமதி செய்வதில் பிழை")
+    }
+
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ""
+    }
+  }
+
+  const getValueByPath = (obj: any, path: string) => {
+    const parts = path.split(".")
+    let current = obj
+
+    for (let i = 0; i < parts.length; i++) {
+      const part = parts[i]
+
+      // Handle array notation like "buyers[0].name"
+      if (part.includes("[") && part.includes("]")) {
+        const arrayName = part.substring(0, part.indexOf("["))
+        const indexStr = part.substring(part.indexOf("[") + 1, part.indexOf("]"))
+        const index = Number.parseInt(indexStr, 10)
+
+        if (!current[arrayName] || !Array.isArray(current[arrayName]) || index >= current[arrayName].length) {
+          return undefined
+        }
+
+        current = current[arrayName][index]
+      } else {
+        if (current === undefined || current === null || !(part in current)) {
+          return undefined
+        }
+        current = current[part]
+      }
+    }
+
+    return current
+  }
+
+  const replacePlaceholders = () => {
     if (!editorRef.current) return
 
-    // Use html2pdf or similar library to export as PDF
-    // This is a placeholder for the actual implementation
-    toast.info("PDF ஏற்றுமதி செயல்பாடு செயல்படுத்தப்படுகிறது")
+    let updatedContent = editorRef.current.getContent()
+
+    // Find all placeholders in the format {{fieldPath}}
+    const placeholderRegex = /{{([^}]+)}}/g
+    let match
+
+    while ((match = placeholderRegex.exec(updatedContent)) !== null) {
+      const placeholder = match[0]
+      const fieldPath = match[1].trim()
+
+      const value = getValueByPath(formData, fieldPath)
+
+      if (value !== undefined) {
+        updatedContent = updatedContent.replace(placeholder, value.toString())
+      }
+    }
+
+    editorRef.current.setContent(updatedContent)
+    setContent(updatedContent)
+    toast.success("ஆவணம் புதுப்பிக்கப்பட்டது")
+  }
+
+  const handleInsertField = (fieldPath: string, label: string) => {
+    if (!editorRef.current) return
+
+    const placeholder = `{{${fieldPath}}}`
+    editorRef.current.insertContent(placeholder)
+    toast.success(`"${label}" புலம் சேர்க்கப்பட்டது`)
+  }
+
+  const handlePreviewClick = () => {
+    setActiveTab("preview")
   }
 
   return (
-    <Card className="border-purple-200 shadow-md">
-      <CardContent className="p-4">
-        {isLoading ? (
-          <div className="flex items-center justify-center h-96">
-            <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
-            <span className="ml-2 text-purple-700">ஆவணம் ஏற்றப்படுகிறது...</span>
-          </div>
-        ) : (
-          <>
-            <div className="mb-4">
-              <Editor
-                onInit={(evt, editor) => (editorRef.current = editor)}
-                initialValue={content}
-                init={{
-                  height: 600,
-                  menubar: true,
-                  plugins: [
-                    "advlist",
-                    "autolink",
-                    "lists",
-                    "link",
-                    "image",
-                    "charmap",
-                    "preview",
-                    "anchor",
-                    "searchreplace",
-                    "visualblocks",
-                    "code",
-                    "fullscreen",
-                    "insertdatetime",
-                    "media",
-                    "table",
-                    "code",
-                    "help",
-                    "wordcount",
-                    "pagebreak",
-                  ],
-                  toolbar:
-                    "undo redo | blocks | bold italic forecolor | alignleft aligncenter " +
-                    "alignright alignjustify | bullist numlist outdent indent | " +
-                    "removeformat | help | pagebreak",
-                  content_style: "body { font-family: Arial, sans-serif; font-size: 14px; line-height: 1.6; }",
-                  language: "ta",
-                  language_url: "/tinymce/langs/ta.js", // Path to Tamil language file if available
-                  branding: false,
-                  promotion: false,
-                }}
+    <div className="space-y-4">
+      <Card className="p-4">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="mb-4">
+            <TabsTrigger value="editor" className="flex items-center gap-1">
+              <FileText className="h-4 w-4" />
+              ஆவண உருவாக்கி
+            </TabsTrigger>
+            <TabsTrigger value="preview" className="flex items-center gap-1">
+              <Eye className="h-4 w-4" />
+              முன்னோட்டம்
+            </TabsTrigger>
+            <TabsTrigger value="templates" className="flex items-center gap-1">
+              <FileText className="h-4 w-4" />
+              வார்ப்புருக்கள்
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="editor" className="space-y-4">
+            <div className="flex flex-wrap gap-2 mb-4">
+              <Button onClick={handleSave} className="bg-purple-600 hover:bg-purple-700">
+                <Save className="h-4 w-4 mr-2" />
+                சேமி
+              </Button>
+
+              <Button onClick={handleExportWord} variant="outline" className="border-purple-200 hover:bg-purple-50">
+                <Download className="h-4 w-4 mr-2" />
+                Word ஆக ஏற்றுமதி செய்
+              </Button>
+
+              <Button onClick={handleImportWord} variant="outline" className="border-purple-200 hover:bg-purple-50">
+                <Upload className="h-4 w-4 mr-2" />
+                Word இலிருந்து இறக்குமதி செய்
+              </Button>
+
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                accept=".docx,.doc"
+                className="hidden"
               />
+
+              <Button onClick={replacePlaceholders} variant="outline" className="border-purple-200 hover:bg-purple-50">
+                <RefreshCw className="h-4 w-4 mr-2" />
+                புதுப்பி
+              </Button>
+
+              <Dialog open={isFieldDialogOpen} onOpenChange={setIsFieldDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="border-purple-200 hover:bg-purple-50">
+                    <Plus className="h-4 w-4 mr-2" />
+                    புலத்தைச் சேர்க்க
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[600px]">
+                  <DialogHeader>
+                    <DialogTitle>புலத்தைத் தேர்ந்தெடுக்கவும்</DialogTitle>
+                  </DialogHeader>
+                  <div className="max-h-[70vh] overflow-y-auto">
+                    <FieldSelectorContent formData={formData} onSelectField={handleInsertField} />
+                  </div>
+                </DialogContent>
+              </Dialog>
+
+              <Button onClick={handlePreviewClick} variant="outline" className="border-purple-200 hover:bg-purple-50">
+                <Eye className="h-4 w-4 mr-2" />
+                முன்னோட்டம் காண்க
+              </Button>
             </div>
-            <div className="flex flex-wrap gap-2 justify-end">
-              <Button
-                variant="outline"
-                onClick={handleSaveContent}
-                disabled={isSaving}
-                className="border-purple-300 hover:bg-purple-50 text-purple-700"
-              >
-                {isSaving ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    சேமிக்கிறது...
-                  </>
-                ) : (
-                  <>
-                    <Save className="h-4 w-4 mr-2" />
+
+            <Editor
+              onInit={(evt, editor) => (editorRef.current = editor)}
+              initialValue={initialContent}
+              value={content}
+              onEditorChange={handleEditorChange}
+              init={{
+                height: 500,
+                menubar: true,
+                plugins: [
+                  "advlist",
+                  "autolink",
+                  "lists",
+                  "link",
+                  "image",
+                  "charmap",
+                  "preview",
+                  "anchor",
+                  "searchreplace",
+                  "visualblocks",
+                  "code",
+                  "fullscreen",
+                  "insertdatetime",
+                  "media",
+                  "table",
+                  "code",
+                  "help",
+                  "wordcount",
+                  "directionality",
+                  "pagebreak",
+                ],
+                toolbar:
+                  "undo redo | blocks | " +
+                  "bold italic forecolor | alignleft aligncenter " +
+                  "alignright alignjustify | bullist numlist outdent indent | " +
+                  "removeformat | pagebreak | help | ltr rtl",
+                content_style: `
+                  body { 
+                    font-family: Arial, sans-serif; 
+                    font-size: 14px;
+                    line-height: 1.5;
+                    max-width: 210mm;
+                    min-height: 297mm;
+                    padding: 2cm;
+                    margin: 0 auto;
+                    background-color: white;
+                  }
+                  .mce-content-body [data-mce-selected="inline-boundary"] {
+                    background-color: #E9D5FF;
+                  }
+                  .mce-pagebreak {
+                    border-top: 2px dashed #5b21b6;
+                    border-bottom: none;
+                    height: 5px;
+                    margin-top: 15px;
+                    margin-bottom: 15px;
+                    page-break-before: always;
+                    page-break-after: always;
+                  }
+                `,
+                directionality: "ltr",
+                language: "en",
+                language_url: "/tinymce/langs/ta.js",
+                setup: (editor) => {
+                  editor.ui.registry.addButton("insertField", {
+                    text: "புலத்தைச் சேர்க்க",
+                    onAction: () => {
+                      setIsFieldDialogOpen(true)
+                    },
+                  })
+                },
+              }}
+            />
+          </TabsContent>
+
+          <TabsContent value="preview" className="space-y-4">
+            <DocumentPreview content={content} title={formData?.deed?.documentType || "கிரைய ஆவணம்"} />
+          </TabsContent>
+
+          <TabsContent value="templates" className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <h3 className="text-lg font-medium text-purple-800 mb-2">வார்ப்புருவைத் தேர்ந்தெடுக்கவும்</h3>
+                <Select value={selectedTemplate} onValueChange={handleTemplateSelect}>
+                  <SelectTrigger className="border-purple-200 focus-visible:ring-purple-400">
+                    <SelectValue placeholder="வார்ப்புருவைத் தேர்ந்தெடுக்கவும்" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {templates.map((template) => (
+                      <SelectItem key={template.id} value={template.id.toString()}>
+                        {template.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-medium text-purple-800 mb-2">புதிய வார்ப்புருவைச் சேமிக்கவும்</h3>
+                <div className="flex gap-2">
+                  <Input
+                    value={newTemplateName}
+                    onChange={(e) => setNewTemplateName(e.target.value)}
+                    placeholder="வார்ப்புரு பெயர்"
+                    className="border-purple-200 focus-visible:ring-purple-400"
+                  />
+                  <Button onClick={handleSaveTemplate} className="bg-purple-600 hover:bg-purple-700">
                     சேமி
-                  </>
-                )}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={handlePrintPreview}
-                className="border-purple-300 hover:bg-purple-50 text-purple-700"
-              >
-                <Printer className="h-4 w-4 mr-2" />
-                அச்சிடு
-              </Button>
-              <Button
-                variant="outline"
-                onClick={handleExportPDF}
-                className="border-purple-300 hover:bg-purple-50 text-purple-700"
-              >
-                <FileDown className="h-4 w-4 mr-2" />
-                PDF ஏற்றுமதி
-              </Button>
+                  </Button>
+                </div>
+              </div>
             </div>
-          </>
-        )}
-      </CardContent>
-    </Card>
+
+            <div className="mt-4">
+              <Label className="text-lg font-medium text-purple-800">உள்ள வார்ப்புருக்கள்</Label>
+              {templates.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mt-2">
+                  {templates.map((template) => (
+                    <Card
+                      key={template.id}
+                      className="p-3 border-purple-200 hover:border-purple-300 cursor-pointer"
+                      onClick={() => handleTemplateSelect(template.id.toString())}
+                    >
+                      <div className="flex items-center">
+                        <FileText className="h-5 w-5 text-purple-600 mr-2" />
+                        <span>{template.name}</span>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-500 mt-2">வார்ப்புருக்கள் எதுவும் இல்லை</p>
+              )}
+            </div>
+          </TabsContent>
+        </Tabs>
+      </Card>
+    </div>
+  )
+}
+
+function FieldSelectorContent({
+  formData,
+  onSelectField,
+}: {
+  formData: any
+  onSelectField: (fieldPath: string, label: string) => void
+}) {
+  return (
+    <div className="space-y-6 p-2">
+      {/* Basic document details */}
+      <div>
+        <h3 className="text-lg font-medium text-purple-800 mb-2">ஆவண அடிப்படை விவரங்கள்</h3>
+        <div className="grid grid-cols-2 gap-2">
+          {formData.deed?.documentNumber && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onSelectField("deed.documentNumber", "ஆவண எண்")}
+              className="justify-start border-purple-200"
+            >
+              ஆவண எண்: {formData.deed.documentNumber}
+            </Button>
+          )}
+          {formData.deed?.documentDate && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onSelectField("deed.documentDate", "ஆவண தேதி")}
+              className="justify-start border-purple-200"
+            >
+              ஆவண தேதி: {formData.deed.documentDate}
+            </Button>
+          )}
+          {formData.deed?.year && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onSelectField("deed.year", "ஆண்டு")}
+              className="justify-start border-purple-200"
+            >
+              ஆண்டு: {formData.deed.year}
+            </Button>
+          )}
+          {formData.deed?.month && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onSelectField("deed.month", "மாதம்")}
+              className="justify-start border-purple-200"
+            >
+              மாதம்: {formData.deed.month}
+            </Button>
+          )}
+          {formData.deed?.day && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onSelectField("deed.day", "நாள்")}
+              className="justify-start border-purple-200"
+            >
+              நாள்: {formData.deed.day}
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* Buyer details */}
+      {formData.buyer && formData.buyer.length > 0 && (
+        <div>
+          <h3 className="text-lg font-medium text-purple-800 mb-2">வாங்குபவர் விவரங்கள்</h3>
+          <div className="grid grid-cols-2 gap-2">
+            {formData.buyer.map((buyer: any, index: number) => (
+              <div key={`buyer-${index}`} className="space-y-2">
+                <h4 className="text-sm font-medium">
+                  வாங்குபவர் {index + 1}: {buyer.name}
+                </h4>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onSelectField(`buyer[${index}].name`, `வாங்குபவர் ${index + 1} பெயர்`)}
+                  className="justify-start w-full border-purple-200"
+                >
+                  பெயர்: {buyer.name}
+                </Button>
+                {buyer.address && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onSelectField(`buyer[${index}].address`, `வாங்குபவர் ${index + 1} முகவரி`)}
+                    className="justify-start w-full border-purple-200"
+                  >
+                    முகவரி: {buyer.address}
+                  </Button>
+                )}
+                {buyer.phone && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onSelectField(`buyer[${index}].phone`, `வாங்குபவர் ${index + 1} தொலைபேசி`)}
+                    className="justify-start w-full border-purple-200"
+                  >
+                    தொலைபேசி: {buyer.phone}
+                  </Button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Seller details */}
+      {formData.seller && formData.seller.length > 0 && (
+        <div>
+          <h3 className="text-lg font-medium text-purple-800 mb-2">விற்பனையாளர் விவரங்கள்</h3>
+          <div className="grid grid-cols-2 gap-2">
+            {formData.seller.map((seller: any, index: number) => (
+              <div key={`seller-${index}`} className="space-y-2">
+                <h4 className="text-sm font-medium">
+                  விற்பனையாளர் {index + 1}: {seller.name}
+                </h4>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onSelectField(`seller[${index}].name`, `விற்பனையாளர் ${index + 1} பெயர்`)}
+                  className="justify-start w-full border-purple-200"
+                >
+                  பெயர்: {seller.name}
+                </Button>
+                {seller.address && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onSelectField(`seller[${index}].address`, `விற்பனையாளர் ${index + 1} முகவரி`)}
+                    className="justify-start w-full border-purple-200"
+                  >
+                    முகவரி: {seller.address}
+                  </Button>
+                )}
+                {seller.phone && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onSelectField(`seller[${index}].phone`, `விற்பனையாளர் ${index + 1} தொலைபேசி`)}
+                    className="justify-start w-full border-purple-200"
+                  >
+                    தொலைபேசி: {seller.phone}
+                  </Button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Property details */}
+      {formData.property && Object.keys(formData.property).length > 0 && (
+        <div>
+          <h3 className="text-lg font-medium text-purple-800 mb-2">சொத்து விவரங்கள்</h3>
+          <div className="grid grid-cols-2 gap-2">
+            {formData.property.district && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onSelectField("property.district", "மாவட்டம்")}
+                className="justify-start border-purple-200"
+              >
+                மாவட்டம்: {formData.property.district}
+              </Button>
+            )}
+            {formData.property.taluk && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onSelectField("property.taluk", "வட்டம்")}
+                className="justify-start border-purple-200"
+              >
+                வட்டம்: {formData.property.taluk}
+              </Button>
+            )}
+            {formData.property.doorNo && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onSelectField("property.doorNo", "கதவு எண்")}
+                className="justify-start border-purple-200"
+              >
+                கதவு எண்: {formData.property.doorNo}
+              </Button>
+            )}
+            {formData.property.addressLine && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onSelectField("property.addressLine", "முகவரி")}
+                className="justify-start border-purple-200"
+              >
+                முகவரி: {formData.property.addressLine}
+              </Button>
+            )}
+            {formData.property.propertyValue && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onSelectField("property.propertyValue", "சொத்து மதிப்பு")}
+                className="justify-start border-purple-200"
+              >
+                சொத்து மதிப்பு: {formData.property.propertyValue}
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Payment details */}
+      {formData.payment && Object.keys(formData.payment).length > 0 && (
+        <div>
+          <h3 className="text-lg font-medium text-purple-800 mb-2">பணப்பட்டுவாடா விவரங்கள்</h3>
+          <div className="grid grid-cols-2 gap-2">
+            {formData.payment.totalAmount && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onSelectField("payment.totalAmount", "மொத்த தொகை")}
+                className="justify-start border-purple-200"
+              >
+                மொத்த தொகை: {formData.payment.totalAmount}
+              </Button>
+            )}
+            {formData.payment.amountInWords && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onSelectField("payment.amountInWords", "தொகை (எழுத்தில்)")}
+                className="justify-start border-purple-200"
+              >
+                தொகை (எழுத்தில்): {formData.payment.amountInWords}
+              </Button>
+            )}
+            {formData.payment.paymentMethod && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onSelectField("payment.paymentMethod", "செலுத்தும் முறை")}
+                className="justify-start border-purple-200"
+              >
+                செலுத்தும் முறை: {formData.payment.paymentMethod}
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
   )
 }

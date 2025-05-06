@@ -1,378 +1,256 @@
 "use client"
 
-import { Separator } from "@/components/ui/separator"
-import { getSupabaseBrowserClient } from "@/lib/supabase"
-import { useEffect, useState } from "react"
+import { useRef, useState, useEffect } from "react"
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
+import { Printer, ZoomIn, ZoomOut, RotateCw } from "lucide-react"
+import { toast } from "sonner"
 
 interface DocumentPreviewProps {
-  formData: any
+  content: string
+  title?: string
 }
 
-export function DocumentPreview({ formData }: DocumentPreviewProps) {
-  const [registrationOfficeName, setRegistrationOfficeName] = useState("")
-  const [documentPreparerName, setDocumentPreparerName] = useState("")
-  const [typingOfficeName, setTypingOfficeName] = useState("")
-  const [propertyTypeName, setPropertyTypeName] = useState("")
-  const [paymentMethodName, setPaymentMethodName] = useState("")
-  const [loading, setLoading] = useState(true)
+export function DocumentPreview({ content, title = "கிரைய ஆவணம்" }: DocumentPreviewProps) {
+  const [scale, setScale] = useState(1)
+  const previewRef = useRef<HTMLDivElement>(null)
+  const [pages, setPages] = useState<string[]>([])
+  const [isLoading, setIsLoading] = useState(true)
 
-  const supabase = getSupabaseBrowserClient()
-
+  // Split content into pages
   useEffect(() => {
-    async function fetchReferenceData() {
-      try {
-        setLoading(true)
-
-        // Fetch registration office name
-        if (formData.deed?.registrationOfficeId) {
-          const { data: officeData } = await supabase
-            .from("sub_registrar_offices")
-            .select("name")
-            .eq("id", formData.deed.registrationOfficeId)
-            .single()
-
-          if (officeData) setRegistrationOfficeName(officeData.name)
-        }
-
-        // Fetch document preparer name
-        if (formData.deed?.documentPreparerId) {
-          const { data: preparerData } = await supabase
-            .from("typists")
-            .select("name")
-            .eq("id", formData.deed.documentPreparerId)
-            .single()
-
-          if (preparerData) setDocumentPreparerName(preparerData.name)
-        }
-
-        // Fetch typing office name
-        if (formData.deed?.typingOfficeId) {
-          const { data: officeData } = await supabase
-            .from("offices")
-            .select("name")
-            .eq("id", formData.deed.typingOfficeId)
-            .single()
-
-          if (officeData) setTypingOfficeName(officeData.name)
-        }
-
-        // Fetch property type name
-        if (formData.property?.propertyType) {
-          const { data: typeData } = await supabase
-            .from("land_types")
-            .select("name")
-            .eq("id", formData.property.propertyType)
-            .single()
-
-          if (typeData) setPropertyTypeName(typeData.name)
-        }
-
-        // Fetch payment method name
-        if (formData.payment?.paymentMethod) {
-          const { data: methodData } = await supabase
-            .from("payment_methods")
-            .select("name")
-            .eq("id", formData.payment.paymentMethod)
-            .single()
-
-          if (methodData) setPaymentMethodName(methodData.name)
-        }
-      } catch (error) {
-        console.error("Error fetching reference data:", error)
-      } finally {
-        setLoading(false)
-      }
+    if (!content) {
+      setPages([])
+      setIsLoading(false)
+      return
     }
 
-    fetchReferenceData()
-  }, [
-    formData.deed?.registrationOfficeId,
-    formData.deed?.documentPreparerId,
-    formData.deed?.typingOfficeId,
-    formData.property?.propertyType,
-    formData.payment?.paymentMethod,
-    supabase,
-  ])
+    // Simple page splitting based on content length
+    // In a real implementation, you might want to use a more sophisticated approach
+    const splitContent = () => {
+      setIsLoading(true)
 
-  const getMonthName = (monthNumber: string) => {
-    const months = [
-      "ஜனவரி",
-      "பிப்ரவரி",
-      "மார்ச்",
-      "ஏப்ரல்",
-      "மே",
-      "ஜூன்",
-      "ஜூலை",
-      "ஆகஸ்ட்",
-      "செப்டம்பர்",
-      "அக்டோபர்",
-      "நவம்பர்",
-      "டிசம்பர்",
-    ]
-    const index = Number.parseInt(monthNumber) - 1
-    return months[index] || ""
+      // Process the HTML content to add page breaks
+      let processedContent = content
+
+      // Add page breaks at natural points if they don't exist
+      if (!processedContent.includes("page-break-after")) {
+        // Add page breaks after major sections (h1, h2) if they don't already have them
+        processedContent = processedContent.replace(
+          /(<h1[^>]*>.*?<\/h1>|<h2[^>]*>.*?<\/h2>)/gi,
+          '$1<div style="page-break-after: always;"></div>',
+        )
+      }
+
+      // Split by page break divs
+      const pageBreakRegex = /<div[^>]*style="[^"]*page-break-after:\s*always[^"]*"[^>]*><\/div>/gi
+      const contentParts = processedContent.split(pageBreakRegex)
+
+      // If we have very few parts, try to split by paragraphs to create reasonable page sizes
+      if (contentParts.length <= 1) {
+        const tempDiv = document.createElement("div")
+        tempDiv.innerHTML = processedContent
+
+        const paragraphs = tempDiv.querySelectorAll("p")
+        const pageSize = 10 // paragraphs per page
+        const newPages = []
+
+        let currentPage = ""
+        let count = 0
+
+        paragraphs.forEach((p) => {
+          currentPage += p.outerHTML
+          count++
+
+          if (count >= pageSize) {
+            newPages.push(currentPage)
+            currentPage = ""
+            count = 0
+          }
+        })
+
+        if (currentPage) {
+          newPages.push(currentPage)
+        }
+
+        setPages(newPages.length > 0 ? newPages : [processedContent])
+      } else {
+        setPages(contentParts)
+      }
+
+      setIsLoading(false)
+    }
+
+    splitContent()
+  }, [content])
+
+  const handlePrint = () => {
+    const printWindow = window.open("", "_blank")
+    if (!printWindow) {
+      toast.error("பாப்-அப் விண்டோக்களை அனுமதிக்கவும்")
+      return
+    }
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>${title}</title>
+        <meta charset="UTF-8">
+        <style>
+          @page {
+            size: A4;
+            margin: 2cm;
+          }
+          body {
+            font-family: 'Noto Sans Tamil', Arial, sans-serif;
+            line-height: 1.5;
+            color: #000;
+            background: #fff;
+            margin: 0;
+            padding: 0;
+          }
+          .page {
+            page-break-after: always;
+            position: relative;
+            padding: 2cm;
+          }
+          .page:last-child {
+            page-break-after: avoid;
+          }
+          h1, h2, h3 {
+            margin-top: 0;
+          }
+          p {
+            margin-bottom: 0.5cm;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 0.5cm;
+          }
+          table, th, td {
+            border: 1px solid #000;
+            padding: 0.2cm;
+          }
+          @media print {
+            body {
+              margin: 0;
+              padding: 0;
+            }
+            .page {
+              padding: 0;
+            }
+            .no-print {
+              display: none;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="no-print" style="padding: 20px; text-align: center;">
+          <button onclick="window.print()" style="padding: 10px 20px; background: #5b21b6; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px;">
+            அச்சிடு
+          </button>
+        </div>
+        ${pages
+          .map(
+            (page, index) => `
+          <div class="page">
+            ${index === 0 ? `<h1 style="text-align: center;">${title}</h1>` : ""}
+            ${page}
+          </div>
+        `,
+          )
+          .join("")}
+      </body>
+      </html>
+    `)
+
+    printWindow.document.close()
+
+    // Focus and print after content is loaded
+    printWindow.onload = () => {
+      printWindow.focus()
+    }
   }
 
-  const formatDate = (day: string, month: string, year: string) => {
-    if (!day || !month || !year) return ""
-    return `${day} ${getMonthName(month)} ${year}`
+  const zoomIn = () => {
+    setScale((prev) => Math.min(prev + 0.1, 2))
+  }
+
+  const zoomOut = () => {
+    setScale((prev) => Math.max(prev - 0.1, 0.5))
+  }
+
+  const resetZoom = () => {
+    setScale(1)
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-96">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-600"></div>
+      </div>
+    )
   }
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md max-w-4xl mx-auto">
-      <div className="text-center mb-8">
-        <h1 className="text-2xl font-bold text-purple-800 mb-2">கிரைய ஆவணம் (Sale Deed)</h1>
-        <p className="text-gray-600">
-          {registrationOfficeName ? `${registrationOfficeName} அலுவலகம்` : "சார்பதிவாளர் அலுவலகம்"}
-        </p>
-        {formData.deed?.day && formData.deed?.month && formData.deed?.year && (
-          <p className="text-gray-600">
-            தேதி: {formatDate(formData.deed.day, formData.deed.month, formData.deed.year)}
-          </p>
-        )}
-      </div>
-
-      <Separator className="my-6 bg-purple-200" />
-
-      {/* Document Details */}
-      <div className="mb-6">
-        <h2 className="text-xl font-semibold text-purple-700 mb-3">ஆவண விவரங்கள்</h2>
-        <div className="bg-purple-50 p-4 rounded-lg">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <p className="text-gray-600">
-                <span className="font-semibold">ஆவணம் தயாரித்தவர்:</span> {documentPreparerName || "-"}
-              </p>
-              <p className="text-gray-600">
-                <span className="font-semibold">தொலைபேசி எண்:</span> {formData.deed?.phoneNumber || "-"}
-              </p>
-            </div>
-            <div>
-              <p className="text-gray-600">
-                <span className="font-semibold">தட்டச்சு அலுவலகம்:</span> {typingOfficeName || "-"}
-              </p>
-            </div>
-          </div>
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <div className="flex items-center space-x-2">
+          <Button variant="outline" size="sm" onClick={zoomOut} className="border-purple-200 hover:bg-purple-50">
+            <ZoomOut className="h-4 w-4" />
+            <span className="sr-only">குறை</span>
+          </Button>
+          <span className="text-sm">{Math.round(scale * 100)}%</span>
+          <Button variant="outline" size="sm" onClick={zoomIn} className="border-purple-200 hover:bg-purple-50">
+            <ZoomIn className="h-4 w-4" />
+            <span className="sr-only">பெரிதாக்கு</span>
+          </Button>
+          <Button variant="outline" size="sm" onClick={resetZoom} className="border-purple-200 hover:bg-purple-50">
+            <RotateCw className="h-4 w-4" />
+            <span className="sr-only">மீட்டமை</span>
+          </Button>
         </div>
+        <Button onClick={handlePrint} className="bg-purple-600 hover:bg-purple-700">
+          <Printer className="h-4 w-4 mr-2" />
+          அச்சிடு
+        </Button>
       </div>
 
-      {/* Seller Details */}
-      <div className="mb-6">
-        <h2 className="text-xl font-semibold text-purple-700 mb-3">விற்பனையாளர் விவரங்கள்</h2>
-        {Array.isArray(formData.seller) && formData.seller.length > 0 ? (
-          <div className="space-y-4">
-            {formData.seller.map((seller: any, index: number) => (
-              <div key={index} className="bg-purple-50 p-4 rounded-lg">
-                <p className="font-medium text-purple-800">{seller.name}</p>
-                <p className="text-gray-600">{seller.address_line1 || seller.address1 || seller.address}</p>
-                {(seller.phone || seller.phoneNo) && (
-                  <p className="text-gray-600">தொலைபேசி: {seller.phone || seller.phoneNo}</p>
-                )}
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-gray-500 italic">விற்பனையாளர் விவரங்கள் எதுவும் சேர்க்கப்படவில்லை</p>
-        )}
-      </div>
-
-      {/* Buyer Details */}
-      <div className="mb-6">
-        <h2 className="text-xl font-semibold text-purple-700 mb-3">வாங்குபவர் விவரங்கள்</h2>
-        {Array.isArray(formData.buyer) && formData.buyer.length > 0 ? (
-          <div className="space-y-4">
-            {formData.buyer.map((buyer: any, index: number) => (
-              <div key={index} className="bg-purple-50 p-4 rounded-lg">
-                <p className="font-medium text-purple-800">{buyer.name}</p>
-                <p className="text-gray-600">{buyer.address_line1 || buyer.address1 || buyer.address}</p>
-                {(buyer.phone || buyer.phoneNo) && (
-                  <p className="text-gray-600">தொலைபேசி: {buyer.phone || buyer.phoneNo}</p>
-                )}
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-gray-500 italic">வாங்குபவர் விவரங்கள் எதுவும் சேர்க்கப்படவில்லை</p>
-        )}
-      </div>
-
-      {/* Property Details */}
-      <div className="mb-6">
-        <h2 className="text-xl font-semibold text-purple-700 mb-3">சொத்து விவரங்கள்</h2>
-        <div className="bg-purple-50 p-4 rounded-lg">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <p className="text-gray-600">
-                <span className="font-semibold">சொத்து வகை:</span> {propertyTypeName || "-"}
-              </p>
-              <p className="text-gray-600">
-                <span className="font-semibold">சொத்தின் மதிப்பு:</span> {formData.property?.propertyValue || "-"}
-              </p>
-              <p className="text-gray-600">
-                <span className="font-semibold">சொத்தின் அளவு:</span> {formData.property?.propertyArea || "-"}
-              </p>
-            </div>
-            <div>
-              <p className="text-gray-600">
-                <span className="font-semibold">சொத்து முகவரி:</span> {formData.property?.propertyAddress || "-"}
-              </p>
-            </div>
-          </div>
-
-          {(formData.property?.northBoundary ||
-            formData.property?.southBoundary ||
-            formData.property?.eastBoundary ||
-            formData.property?.westBoundary) && (
-            <div className="mt-4">
-              <p className="font-semibold text-purple-700 mb-2">எல்லைகள்:</p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                <p className="text-gray-600">
-                  <span className="font-semibold">வடக்கு:</span> {formData.property?.northBoundary || "-"}
-                </p>
-                <p className="text-gray-600">
-                  <span className="font-semibold">தெற்கு:</span> {formData.property?.southBoundary || "-"}
-                </p>
-                <p className="text-gray-600">
-                  <span className="font-semibold">கிழக்கு:</span> {formData.property?.eastBoundary || "-"}
-                </p>
-                <p className="text-gray-600">
-                  <span className="font-semibold">மேற்கு:</span> {formData.property?.westBoundary || "-"}
-                </p>
-              </div>
-            </div>
-          )}
-
-          {formData.property?.propertyDescription && (
-            <div className="mt-4">
-              <p className="font-semibold text-purple-700 mb-2">சொத்து விளக்கம்:</p>
-              <p className="text-gray-600">{formData.property.propertyDescription}</p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Payment Details */}
-      <div className="mb-6">
-        <h2 className="text-xl font-semibold text-purple-700 mb-3">பணப்பட்டுவாடா விவரங்கள்</h2>
-        <div className="bg-purple-50 p-4 rounded-lg">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <p className="text-gray-600">
-                <span className="font-semibold">மொத்த தொகை:</span> {formData.payment?.totalAmount || "-"}
-              </p>
-              <p className="text-gray-600">
-                <span className="font-semibold">முன்பணம்:</span> {formData.payment?.advanceAmount || "-"}
-              </p>
-              <p className="text-gray-600">
-                <span className="font-semibold">மீதமுள்ள தொகை:</span> {formData.payment?.remainingAmount || "-"}
-              </p>
-            </div>
-            <div>
-              <p className="text-gray-600">
-                <span className="font-semibold">பணம் செலுத்தும் முறை:</span> {paymentMethodName || "-"}
-              </p>
-              <p className="text-gray-600">
-                <span className="font-semibold">பணம் செலுத்திய தேதி:</span> {formData.payment?.paymentDate || "-"}
-              </p>
-            </div>
-          </div>
-
-          {formData.payment?.paymentDetails && (
-            <div className="mt-4">
-              <p className="font-semibold text-purple-700 mb-2">கூடுதல் பணப்பட்டுவாடா விவரங்கள்:</p>
-              <p className="text-gray-600">{formData.payment.paymentDetails}</p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Witness Details */}
-      <div className="mb-6">
-        <h2 className="text-xl font-semibold text-purple-700 mb-3">சாட்சி விவரங்கள்</h2>
-        {Array.isArray(formData.witness) && formData.witness.length > 0 ? (
-          <div className="space-y-4">
-            {formData.witness.map((witness: any, index: number) => (
-              <div key={index} className="bg-purple-50 p-4 rounded-lg">
-                <p className="font-medium text-purple-800">{witness.name}</p>
-                <p className="text-gray-600">{witness.address_line1 || witness.address1 || witness.address}</p>
-                {(witness.phone || witness.phoneNo) && (
-                  <p className="text-gray-600">தொலைபேசி: {witness.phone || witness.phoneNo}</p>
-                )}
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-gray-500 italic">சாட்சி விவரங்கள் எதுவும் சேர்க்கப்படவில்லை</p>
-        )}
-      </div>
-
-      {/* Previous Documents */}
-      <div className="mb-6">
-        <h2 className="text-xl font-semibold text-purple-700 mb-3">முந்தைய ஆவண விவரங்கள்</h2>
-        {formData.previousDoc?.commonDocuments?.length > 0 || formData.previousDoc?.sellerDocuments?.length > 0 ? (
-          <div className="space-y-4">
-            {formData.previousDoc?.commonDocuments?.length > 0 && (
-              <div>
-                <h3 className="font-medium text-purple-700 mb-2">பொதுவான ஆவணங்கள்</h3>
-                <div className="space-y-2">
-                  {formData.previousDoc.commonDocuments.map((doc: any, index: number) => (
-                    <div key={index} className="bg-purple-50 p-3 rounded-lg">
-                      <p className="font-medium">{doc.documentNumber || "Document"}</p>
-                      <p className="text-sm text-gray-600">{doc.documentType || "Unknown Type"}</p>
-                      <p className="text-sm text-gray-600">{doc.documentDate || "No Date"}</p>
-                    </div>
-                  ))}
+      <div
+        className="overflow-auto bg-gray-100 p-4 rounded-lg shadow-inner"
+        style={{ maxHeight: "calc(100vh - 200px)" }}
+      >
+        <div ref={previewRef} className="flex flex-col items-center space-y-8">
+          {pages.length > 0 ? (
+            pages.map((page, index) => (
+              <Card
+                key={index}
+                className="bg-white shadow-md w-[210mm] min-h-[297mm] relative"
+                style={{
+                  transform: `scale(${scale})`,
+                  transformOrigin: "top center",
+                  transition: "transform 0.2s ease",
+                }}
+              >
+                <div className="absolute top-0 right-0 bg-gray-200 text-gray-600 text-xs px-2 py-1 rounded-bl">
+                  பக்கம் {index + 1}/{pages.length}
                 </div>
-              </div>
-            )}
-
-            {formData.previousDoc?.sellerDocuments?.length > 0 && (
-              <div>
-                <h3 className="font-medium text-purple-700 mb-2">விற்பனையாளர் ஆவணங்கள்</h3>
-                <div className="space-y-2">
-                  {formData.previousDoc.sellerDocuments.map((doc: any, index: number) => {
-                    const seller = Array.isArray(formData.seller)
-                      ? formData.seller.find((s: any) => s.id.toString() === doc.sellerId)
-                      : null
-                    return (
-                      <div key={index} className="bg-purple-50 p-3 rounded-lg">
-                        {seller && <p className="text-sm text-purple-600 mb-1">விற்பனையாளர்: {seller.name}</p>}
-                        <p className="font-medium">{doc.documentNumber || "Document"}</p>
-                        <p className="text-sm text-gray-600">{doc.documentType || "Unknown Type"}</p>
-                        <p className="text-sm text-gray-600">{doc.documentDate || "No Date"}</p>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
-        ) : (
-          <p className="text-gray-500 italic">முந்தைய ஆவண விவரங்கள் எதுவும் சேர்க்கப்படவில்லை</p>
-        )}
-      </div>
-
-      {/* Signature Section */}
-      <div className="mt-12">
-        <div className="grid grid-cols-3 gap-4">
-          <div className="text-center">
-            <div className="border-t-2 border-gray-400 pt-2 mt-16">
-              <p className="font-medium">விற்பனையாளர் கையொப்பம்</p>
-              <p className="text-sm text-gray-600">(Seller's Signature)</p>
+                <div
+                  className="p-[2cm] prose prose-sm max-w-none"
+                  dangerouslySetInnerHTML={{
+                    __html: index === 0 ? `<h1 style="text-align: center;">${title}</h1>${page}` : page,
+                  }}
+                />
+              </Card>
+            ))
+          ) : (
+            <div className="text-center p-8 bg-white rounded-lg shadow w-full">
+              <p className="text-gray-500">ஆவண உள்ளடக்கம் இல்லை</p>
             </div>
-          </div>
-          <div className="text-center">
-            <div className="border-t-2 border-gray-400 pt-2 mt-16">
-              <p className="font-medium">வாங்குபவர் கையொப்பம்</p>
-              <p className="text-sm text-gray-600">(Buyer's Signature)</p>
-            </div>
-          </div>
-          <div className="text-center">
-            <div className="border-t-2 border-gray-400 pt-2 mt-16">
-              <p className="font-medium">சாட்சி கையொப்பம்</p>
-              <p className="text-sm text-gray-600">(Witness's Signature)</p>
-            </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

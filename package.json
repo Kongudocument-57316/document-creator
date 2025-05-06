@@ -65,6 +65,7 @@
     "jspdf": "latest",
     "react-to-print": "latest",
     "@supabase/supabase-js": "latest",
+    "mammoth": "latest",
     "@tinymce/tinymce-react": "latest"
   },
   "devDependencies": {

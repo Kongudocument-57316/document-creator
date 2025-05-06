@@ -10,9 +10,8 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
-import { Eye } from "lucide-react"
+import { Eye } from 'lucide-react'
 import { DocumentPreview } from "./document-preview"
 
 interface PreviewDialogProps {
@@ -25,14 +24,18 @@ export function PreviewDialog({ formData, children }: PreviewDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
+      <Button 
+        variant="outline" 
+        className="border-purple-300 hover:bg-purple-50 text-purple-700"
+        onClick={() => setOpen(true)}
+      >
         {children || (
-          <Button variant="outline" className="border-purple-300 hover:bg-purple-50 text-purple-700">
+          <>
             <Eye className="h-4 w-4 mr-2" />
             முன்னோட்டம்
-          </Button>
+          </>
         )}
-      </DialogTrigger>
+      </Button>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>கிரைய பத்திர முன்னோட்டம்</DialogTitle>
