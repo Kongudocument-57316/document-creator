@@ -31,16 +31,18 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     const { count: totalDocuments } = await supabase.from("sale_deeds").select("*", { count: "exact", head: true })
 
     // Get total users count
-    const { count: totalUsers } = await supabase
+    const { data: usersData, error: usersError } = await supabase
       .from("users")
       .select("*", { count: "exact", head: true })
-      .catch(() => ({ count: 0 })) // Handle if users table doesn't exist
+
+    const totalUsers = usersError ? 0 : usersData?.length || 0
 
     // Get total certificates count
-    const { count: totalCertificates } = await supabase
+    const { data: certificatesData, error: certificatesError } = await supabase
       .from("certificates")
       .select("*", { count: "exact", head: true })
-      .catch(() => ({ count: 0 }))
+
+    const totalCertificates = certificatesError ? 0 : certificatesData?.length || 0
 
     // Get completed documents
     const { count: completedDocuments } = await supabase
@@ -188,34 +190,42 @@ export async function getCertificateStats(): Promise<{ total: number; byType: { 
 
   try {
     // Get total certificates count
-    const { count: total } = await supabase
+    const { data: certificatesData, error: certificatesError } = await supabase
       .from("certificates")
-      .select("*", { count: "exact", head: true })
-      .catch(() => ({ count: 0 }))
+      .select("*", { count: "exact" })
+
+    const total = certificatesError ? 0 : certificatesData?.length || 0
 
     // Get certificate counts by type
-    const { data: certificateTypes } = await supabase
-      .from("certificate_types")
-      .select("id, name")
-      .catch(() => ({ data: [] }))
+    const { data: certificateTypes, error: typesError } = await supabase.from("certificate_types").select("id, name")
+
+    if (typesError || !certificateTypes || certificateTypes.length === 0) {
+      return {
+        total,
+        byType: [
+          { name: "EC", count: 0 },
+          { name: "பட்டா", count: 0 },
+          { name: "சிட்டா", count: 0 },
+        ],
+      }
+    }
 
     const byType = await Promise.all(
-      (certificateTypes || []).map(async (type) => {
-        const { count } = await supabase
+      certificateTypes.map(async (type) => {
+        const { data, error } = await supabase
           .from("certificates")
-          .select("*", { count: "exact", head: true })
+          .select("*", { count: "exact" })
           .eq("certificate_type_id", type.id)
-          .catch(() => ({ count: 0 }))
 
         return {
           name: type.name,
-          count: count || 0,
+          count: error ? 0 : data?.length || 0,
         }
       }),
     )
 
     return {
-      total: total || 0,
+      total,
       byType:
         byType.length > 0
           ? byType
@@ -244,12 +254,9 @@ export async function getDistrictStats(): Promise<{ name: string; count: number 
 
   try {
     // Get districts
-    const { data: districts } = await supabase
-      .from("districts")
-      .select("id, name")
-      .catch(() => ({ data: [] }))
+    const { data: districts, error: districtsError } = await supabase.from("districts").select("id, name")
 
-    if (!districts || districts.length === 0) {
+    if (districtsError || !districts || districts.length === 0) {
       return []
     }
 
