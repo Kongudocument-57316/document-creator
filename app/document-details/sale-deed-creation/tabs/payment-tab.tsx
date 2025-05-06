@@ -15,6 +15,73 @@ interface PaymentTabProps {
   updateData: (data: any[]) => void
 }
 
+function convertNumberToWords(num: number): string {
+  const ones = [
+    "",
+    "one",
+    "two",
+    "three",
+    "four",
+    "five",
+    "six",
+    "seven",
+    "eight",
+    "nine",
+    "ten",
+    "eleven",
+    "twelve",
+    "thirteen",
+    "fourteen",
+    "fifteen",
+    "sixteen",
+    "seventeen",
+    "eighteen",
+    "nineteen",
+  ]
+  const tens = ["", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"]
+
+  if (num === 0) return "zero"
+
+  function convertLessThanThousand(n: number): string {
+    if (n < 20) return ones[n]
+    const digit = n % 10
+    if (n < 100) return tens[Math.floor(n / 10)] + (digit ? "-" + ones[digit] : "")
+    return ones[Math.floor(n / 100)] + " hundred" + (n % 100 ? " and " + convertLessThanThousand(n % 100) : "")
+  }
+
+  let words = ""
+  const chunk = 0
+  const billion = Math.floor(num / 1000000000)
+  num %= 1000000000
+
+  if (billion) {
+    words += convertLessThanThousand(billion) + " billion"
+    if (num) words += " "
+  }
+
+  const million = Math.floor(num / 1000000)
+  num %= 1000000
+
+  if (million) {
+    words += convertLessThanThousand(million) + " million"
+    if (num) words += " "
+  }
+
+  const thousand = Math.floor(num / 1000)
+  num %= 1000
+
+  if (thousand) {
+    words += convertLessThanThousand(thousand) + " thousand"
+    if (num) words += " "
+  }
+
+  if (num) {
+    words += convertLessThanThousand(num)
+  }
+
+  return words.charAt(0).toUpperCase() + words.slice(1)
+}
+
 export function PaymentTab({ data, updateData }: PaymentTabProps) {
   const [saleAmount, setSaleAmount] = useState(data.saleAmount || "0.00")
   const [amountInWords, setAmountInWords] = useState(data.amountInWords || "")
@@ -60,9 +127,15 @@ export function PaymentTab({ data, updateData }: PaymentTabProps) {
   const handleSaleAmountChange = (value: string) => {
     setSaleAmount(value)
 
+    // Convert to words in English
+    const numValue = Number.parseFloat(value) || 0
+    const wordsValue = convertNumberToWords(numValue)
+    setAmountInWords(wordsValue)
+
     // Update the form data
     const updatedData = [...payments]
     updatedData.saleAmount = value
+    updatedData.amountInWords = wordsValue
     updateData(updatedData)
   }
 
@@ -149,9 +222,10 @@ export function PaymentTab({ data, updateData }: PaymentTabProps) {
             onChange={(e) => handleAmountInWordsChange(e.target.value)}
             className="mt-1 border-purple-200 focus-visible:ring-purple-400"
             placeholder="Zero"
+            readOnly={!manualEdit}
           />
           <p className="text-xs text-gray-500 mt-1">
-            சொத்து விவரங்கள் தாவலில் உள்ள மொத்த மதிப்பிலிருந்து தானாகவே நிரப்பப்பட்டது (Auto-populated from Total Value of this Deed)
+            கிரையத் தொகையிலிருந்து தானாகவே ஆங்கிலத்தில் மாற்றப்பட்டது (Auto-converted from Sale Amount to English)
           </p>
         </div>
       </div>

@@ -8,7 +8,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { getSupabaseBrowserClient } from "@/lib/supabase"
 import { Trash2, Plus, Pencil } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { UserSearchDialog } from "../components/user-search-dialog"
 import { UserDetailDialog } from "../components/user-detail-dialog"
 import { toast } from "sonner"
@@ -30,7 +29,6 @@ interface SellerTabProps {
 }
 
 export function SellerTab({ data, updateData }: SellerTabProps) {
-  const [sellerType, setSellerType] = useState<string>(data.sellerType || "single")
   const [sellers, setSellers] = useState<any[]>(data.length > 0 && Array.isArray(data) ? data : [])
   const [districts, setDistricts] = useState<District[]>([])
   const [taluks, setTaluks] = useState<Taluk[]>([])
@@ -125,15 +123,6 @@ export function SellerTab({ data, updateData }: SellerTabProps) {
     updateData(updatedSellers)
   }
 
-  const handleSellerTypeChange = (value: string) => {
-    setSellerType(value)
-
-    // Update the form data with the seller type
-    const updatedData = [...sellers]
-    updatedData.sellerType = value
-    updateData(updatedData)
-  }
-
   const addSeller = () => {
     const updatedSellers = [...sellers, createEmptySeller()]
     setSellers(updatedSellers)
@@ -215,25 +204,6 @@ export function SellerTab({ data, updateData }: SellerTabProps) {
             புதிய விற்பனையாளர்
           </Button>
         </div>
-      </div>
-
-      <div className="mb-6">
-        <RadioGroup value={sellerType} onValueChange={handleSellerTypeChange} className="flex flex-col space-y-2">
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="single" id="single-seller" />
-            <Label htmlFor="single-seller">ஒற்றை விற்பனையாளர் (Single Seller)</Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="multiple" id="multiple-sellers" />
-            <Label htmlFor="multiple-sellers">பல விற்பனையாளர்கள் (Multiple Sellers)</Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="multiple-single-doc" id="multiple-sellers-single-doc" />
-            <Label htmlFor="multiple-sellers-single-doc">
-              பல விற்பனையாளர்கள் ஒரே ஆவணம் (Multiple Sellers Single Document)
-            </Label>
-          </div>
-        </RadioGroup>
       </div>
 
       {sellers.length === 0 ? (
@@ -470,51 +440,51 @@ export function SellerTab({ data, updateData }: SellerTabProps) {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-2 sm:gap-4">
                     <div>
-                      <h3 className="font-semibold text-purple-800">பெயர்:</h3>
-                      <p>{seller.name}</p>
+                      <h3 className="font-semibold text-purple-800 text-sm sm:text-base">பெயர்:</h3>
+                      <p className="text-sm sm:text-base truncate">{seller.name}</p>
                     </div>
                     <div>
-                      <h3 className="font-semibold text-purple-800">வயது:</h3>
-                      <p>{seller.age}</p>
+                      <h3 className="font-semibold text-purple-800 text-sm sm:text-base">வயது:</h3>
+                      <p className="text-sm sm:text-base">{seller.age}</p>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-2 sm:gap-4">
                     <div>
-                      <h3 className="font-semibold text-purple-800">உறவுமுறை:</h3>
-                      <p>{seller.relationType}</p>
+                      <h3 className="font-semibold text-purple-800 text-sm sm:text-base">உறவுமுறை:</h3>
+                      <p className="text-sm sm:text-base truncate">{seller.relationType}</p>
                     </div>
                     <div>
-                      <h3 className="font-semibold text-purple-800">உறவினரின் பெயர்:</h3>
-                      <p>{seller.relationName}</p>
+                      <h3 className="font-semibold text-purple-800 text-sm sm:text-base">உறவினரின் பெயர்:</h3>
+                      <p className="text-sm sm:text-base truncate">{seller.relationName}</p>
                     </div>
                   </div>
 
                   <div>
-                    <h3 className="font-semibold text-purple-800">முகவரி:</h3>
-                    <p>
+                    <h3 className="font-semibold text-purple-800 text-sm sm:text-base">முகவரி:</h3>
+                    <p className="text-sm sm:text-base">
                       {seller.doorNo && `${seller.doorNo}, `}
                       {seller.address1}
                     </p>
-                    {seller.address2 && <p>{seller.address2}</p>}
-                    {seller.address3 && <p>{seller.address3}</p>}
-                    <p>
+                    {seller.address2 && <p className="text-sm sm:text-base">{seller.address2}</p>}
+                    {seller.address3 && <p className="text-sm sm:text-base">{seller.address3}</p>}
+                    <p className="text-sm sm:text-base">
                       {seller.district_name && `${seller.district_name}, `}
                       {seller.taluk_name && `${seller.taluk_name}, `}
                       {seller.pincode}
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-2 sm:gap-4">
                     <div>
-                      <h3 className="font-semibold text-purple-800">ஆதார் எண்:</h3>
-                      <p>{seller.aadharNo}</p>
+                      <h3 className="font-semibold text-purple-800 text-sm sm:text-base">ஆதார் எண்:</h3>
+                      <p className="text-sm sm:text-base">{seller.aadharNo}</p>
                     </div>
                     <div>
-                      <h3 className="font-semibold text-purple-800">கைபேசி எண்:</h3>
-                      <p>{seller.phoneNo}</p>
+                      <h3 className="font-semibold text-purple-800 text-sm sm:text-base">கைபேசி எண்:</h3>
+                      <p className="text-sm sm:text-base">{seller.phoneNo}</p>
                     </div>
                   </div>
                 </div>

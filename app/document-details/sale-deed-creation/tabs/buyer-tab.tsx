@@ -436,51 +436,51 @@ export function BuyerTab({ data, updateData }: BuyerTabProps) {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-2 sm:gap-4">
                     <div>
-                      <h3 className="font-semibold text-purple-800">பெயர்:</h3>
-                      <p>{buyer.name}</p>
+                      <h3 className="font-semibold text-purple-800 text-sm sm:text-base">பெயர்:</h3>
+                      <p className="text-sm sm:text-base truncate">{buyer.name}</p>
                     </div>
                     <div>
-                      <h3 className="font-semibold text-purple-800">வயது:</h3>
-                      <p>{buyer.age}</p>
+                      <h3 className="font-semibold text-purple-800 text-sm sm:text-base">வயது:</h3>
+                      <p className="text-sm sm:text-base">{buyer.age}</p>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-2 sm:gap-4">
                     <div>
-                      <h3 className="font-semibold text-purple-800">உறவுமுறை:</h3>
-                      <p>{buyer.relationType}</p>
+                      <h3 className="font-semibold text-purple-800 text-sm sm:text-base">உறவுமுறை:</h3>
+                      <p className="text-sm sm:text-base truncate">{buyer.relationType}</p>
                     </div>
                     <div>
-                      <h3 className="font-semibold text-purple-800">உறவினரின் பெயர்:</h3>
-                      <p>{buyer.relationName}</p>
+                      <h3 className="font-semibold text-purple-800 text-sm sm:text-base">உறவினரின் பெயர்:</h3>
+                      <p className="text-sm sm:text-base truncate">{buyer.relationName}</p>
                     </div>
                   </div>
 
                   <div>
-                    <h3 className="font-semibold text-purple-800">முகவரி:</h3>
-                    <p>
+                    <h3 className="font-semibold text-purple-800 text-sm sm:text-base">முகவரி:</h3>
+                    <p className="text-sm sm:text-base">
                       {buyer.doorNo && `${buyer.doorNo}, `}
                       {buyer.address1}
                     </p>
-                    {buyer.address2 && <p>{buyer.address2}</p>}
-                    {buyer.address3 && <p>{buyer.address3}</p>}
-                    <p>
+                    {buyer.address2 && <p className="text-sm sm:text-base">{buyer.address2}</p>}
+                    {buyer.address3 && <p className="text-sm sm:text-base">{buyer.address3}</p>}
+                    <p className="text-sm sm:text-base">
                       {buyer.district_name && `${buyer.district_name}, `}
                       {buyer.taluk_name && `${buyer.taluk_name}, `}
                       {buyer.pincode}
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-2 sm:gap-4">
                     <div>
-                      <h3 className="font-semibold text-purple-800">ஆதார் எண்:</h3>
-                      <p>{buyer.aadharNo}</p>
+                      <h3 className="font-semibold text-purple-800 text-sm sm:text-base">ஆதார் எண்:</h3>
+                      <p className="text-sm sm:text-base">{buyer.aadharNo}</p>
                     </div>
                     <div>
-                      <h3 className="font-semibold text-purple-800">கைபேசி எண்:</h3>
-                      <p>{buyer.phoneNo}</p>
+                      <h3 className="font-semibold text-purple-800 text-sm sm:text-base">கைபேசி எண்:</h3>
+                      <p className="text-sm sm:text-base">{buyer.phoneNo}</p>
                     </div>
                   </div>
                 </div>

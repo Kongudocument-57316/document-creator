@@ -421,37 +421,37 @@ export function WitnessTab({ data, updateData }: WitnessTabProps) {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-2 sm:gap-4">
                     <div>
-                      <h3 className="font-semibold text-purple-800">பெயர்:</h3>
-                      <p>{witness.name}</p>
+                      <h3 className="font-semibold text-purple-800 text-sm sm:text-base">பெயர்:</h3>
+                      <p className="text-sm sm:text-base truncate">{witness.name}</p>
                     </div>
                     <div>
-                      <h3 className="font-semibold text-purple-800">வயது:</h3>
-                      <p>{witness.age}</p>
+                      <h3 className="font-semibold text-purple-800 text-sm sm:text-base">வயது:</h3>
+                      <p className="text-sm sm:text-base">{witness.age}</p>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-2 sm:gap-4">
                     <div>
-                      <h3 className="font-semibold text-purple-800">உறவுமுறை:</h3>
-                      <p>{witness.relationType}</p>
+                      <h3 className="font-semibold text-purple-800 text-sm sm:text-base">உறவுமுறை:</h3>
+                      <p className="text-sm sm:text-base truncate">{witness.relationType}</p>
                     </div>
                     <div>
-                      <h3 className="font-semibold text-purple-800">உறவினரின் பெயர்:</h3>
-                      <p>{witness.relationName}</p>
+                      <h3 className="font-semibold text-purple-800 text-sm sm:text-base">உறவினரின் பெயர்:</h3>
+                      <p className="text-sm sm:text-base truncate">{witness.relationName}</p>
                     </div>
                   </div>
 
                   <div>
-                    <h3 className="font-semibold text-purple-800">முகவரி:</h3>
-                    <p>
+                    <h3 className="font-semibold text-purple-800 text-sm sm:text-base">முகவரி:</h3>
+                    <p className="text-sm sm:text-base">
                       {witness.doorNo && `${witness.doorNo}, `}
                       {witness.address1}
                     </p>
-                    {witness.address2 && <p>{witness.address2}</p>}
-                    {witness.address3 && <p>{witness.address3}</p>}
-                    <p>
+                    {witness.address2 && <p className="text-sm sm:text-base">{witness.address2}</p>}
+                    {witness.address3 && <p className="text-sm sm:text-base">{witness.address3}</p>}
+                    <p className="text-sm sm:text-base">
                       {witness.district_name && `${witness.district_name}, `}
                       {witness.taluk_name && `${witness.taluk_name}, `}
                       {witness.pincode}
@@ -459,8 +459,8 @@ export function WitnessTab({ data, updateData }: WitnessTabProps) {
                   </div>
 
                   <div>
-                    <h3 className="font-semibold text-purple-800">ஆதார் எண்:</h3>
-                    <p>{witness.aadharNo}</p>
+                    <h3 className="font-semibold text-purple-800 text-sm sm:text-base">ஆதார் எண்:</h3>
+                    <p className="text-sm sm:text-base">{witness.aadharNo}</p>
                   </div>
                 </div>
               )}

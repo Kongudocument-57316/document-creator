@@ -5,12 +5,6 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { getSupabaseBrowserClient } from "@/lib/supabase"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Button } from "@/components/ui/button"
-import { CalendarIcon } from "lucide-react"
-import { Calendar } from "@/components/ui/calendar"
-import { format } from "date-fns"
-import { cn } from "@/lib/utils"
 
 interface RegistrationOffice {
   id: number
@@ -45,7 +39,6 @@ export function DeedTab({ data, updateData }: DeedTabProps) {
     documentPreparerId: data.documentPreparerId || "",
     phoneNumber: data.phoneNumber || "",
     typingOfficeId: data.typingOfficeId || "",
-    documentDate: data.documentDate ? new Date(data.documentDate) : new Date(),
   })
 
   const supabase = getSupabaseBrowserClient()
@@ -78,6 +71,28 @@ export function DeedTab({ data, updateData }: DeedTabProps) {
 
     fetchReferenceData()
   }, [supabase])
+
+  useEffect(() => {
+    async function loadDocumentPreparerPhone() {
+      if (formValues.documentPreparerId) {
+        try {
+          const { data: preparerData } = await supabase
+            .from("typists")
+            .select("phone_number")
+            .eq("id", formValues.documentPreparerId)
+            .single()
+
+          if (preparerData && preparerData.phone_number) {
+            handleChange("phoneNumber", preparerData.phone_number)
+          }
+        } catch (error) {
+          console.error("Error fetching document preparer phone:", error)
+        }
+      }
+    }
+
+    loadDocumentPreparerPhone()
+  }, [formValues.documentPreparerId, supabase])
 
   const handleChange = (field: string, value: string | Date) => {
     const newValues = { ...formValues, [field]: value }
@@ -166,33 +181,6 @@ export function DeedTab({ data, updateData }: DeedTabProps) {
           </div>
         </div>
 
-        <div>
-          <Label>ஆவண தேதி (Document Date)</Label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant={"outline"}
-                className={cn(
-                  "w-full mt-1 pl-3 text-left font-normal border-purple-200 focus-visible:ring-purple-400",
-                  !formValues.documentDate && "text-muted-foreground",
-                )}
-              >
-                {formValues.documentDate ? format(formValues.documentDate, "PPP") : <span>தேதியை தேர்ந்தெடுக்கவும்</span>}
-                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={formValues.documentDate}
-                onSelect={(date) => date && handleChange("documentDate", date)}
-                disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
-        </div>
-
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <Label htmlFor="document-preparer">ஆவணம் தயாரித்தவர் (Document Preparer)</Label>
@@ -221,7 +209,11 @@ export function DeedTab({ data, updateData }: DeedTabProps) {
               value={formValues.phoneNumber}
               onChange={(e) => handleChange("phoneNumber", e.target.value)}
               className="mt-1 border-purple-200 focus-visible:ring-purple-400"
+              readOnly={!!formValues.documentPreparerId}
             />
+            {formValues.documentPreparerId && (
+              <p className="text-xs text-gray-500 mt-1">தட்டச்சாளரின் தொலைபேசி எண்ணிலிருந்து தானாகவே நிரப்பப்பட்டது</p>
+            )}
           </div>
         </div>
 

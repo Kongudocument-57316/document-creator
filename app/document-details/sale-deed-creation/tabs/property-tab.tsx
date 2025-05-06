@@ -224,6 +224,22 @@ export function PropertyTab({ data, updateData }: PropertyTabProps) {
     <div className="space-y-6">
       <h3 className="text-xl font-semibold text-purple-800">சொத்து விவரங்கள்</h3>
 
+      <div>
+        <Label htmlFor="land-type-select">நில வகை (Land Type)</Label>
+        <Select value={formValues.landTypeId} onValueChange={(value) => handleChange("landTypeId", value)}>
+          <SelectTrigger className="mt-1 border-purple-200 focus-visible:ring-purple-400">
+            <SelectValue placeholder="நில வகையைத் தேர்ந்தெடுக்கவும்" />
+          </SelectTrigger>
+          <SelectContent>
+            {landTypes.map((type) => (
+              <SelectItem key={type.id} value={type.id.toString()}>
+                {type.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
       <div className="mb-6">
         <RadioGroup
           value={useExistingProperty ? "true" : "false"}
@@ -462,22 +478,6 @@ export function PropertyTab({ data, updateData }: PropertyTabProps) {
             className="mt-1 border-purple-200 focus-visible:ring-purple-400"
             rows={6}
           />
-        </div>
-
-        <div>
-          <Label htmlFor="land-type-select">நில வகை (Land Type)</Label>
-          <Select value={formValues.landTypeId} onValueChange={(value) => handleChange("landTypeId", value)}>
-            <SelectTrigger className="mt-1 border-purple-200 focus-visible:ring-purple-400">
-              <SelectValue placeholder="நில வகையைத் தேர்ந்தெடுக்கவும்" />
-            </SelectTrigger>
-            <SelectContent>
-              {landTypes.map((type) => (
-                <SelectItem key={type.id} value={type.id.toString()}>
-                  {type.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
