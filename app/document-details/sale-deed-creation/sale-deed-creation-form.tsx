@@ -11,6 +11,7 @@ import { PropertyTab } from "./tabs/property-tab"
 import { WitnessTab } from "./tabs/witness-tab"
 import { PaymentTab } from "./tabs/payment-tab"
 import { DeedTab } from "./tabs/deed-tab"
+import { DocumentEditorTab } from "./tabs/document-editor-tab"
 import { useRouter } from "next/navigation"
 import { Home, ArrowLeft, Save, ArrowRight, Loader2, AlertCircle, Printer, Eye } from "lucide-react"
 import { SimplePdfGenerator } from "./simple-pdf-generator"
@@ -27,6 +28,7 @@ export function SaleDeedCreationForm() {
   const [activeTab, setActiveTab] = useState("deed")
   const [isSaving, setIsSaving] = useState(false)
   const [savedDeedId, setSavedDeedId] = useState<string | null>(null)
+  const [documentId, setDocumentId] = useState<string | null>(null)
   const [validationErrors, setValidationErrors] = useState<Record<string, string[]>>({})
   const [showValidationErrors, setShowValidationErrors] = useState(false)
   const [formData, setFormData] = useState({
@@ -76,7 +78,7 @@ export function SaleDeedCreationForm() {
   }
 
   const goToPreviousTab = () => {
-    const tabs = ["deed", "seller", "buyer", "property", "payment", "witness", "previous-doc"]
+    const tabs = ["deed", "seller", "buyer", "property", "payment", "witness", "previous-doc", "document-editor"]
     const currentIndex = tabs.indexOf(activeTab)
     if (currentIndex > 0) {
       setActiveTab(tabs[currentIndex - 1])
@@ -84,7 +86,7 @@ export function SaleDeedCreationForm() {
   }
 
   const goToNextTab = () => {
-    const tabs = ["deed", "seller", "buyer", "property", "payment", "witness", "previous-doc"]
+    const tabs = ["deed", "seller", "buyer", "property", "payment", "witness", "previous-doc", "document-editor"]
     const currentIndex = tabs.indexOf(activeTab)
     if (currentIndex < tabs.length - 1) {
       setActiveTab(tabs[currentIndex + 1])
@@ -126,7 +128,7 @@ export function SaleDeedCreationForm() {
       setIsSaving(true)
 
       // Include the saved ID if we have one
-      const dataToSave = savedDeedId ? { ...formData, id: savedDeedId } : formData
+      const dataToSave = savedDeedId ? { ...formData, id: savedDeedId, documentId } : { ...formData, documentId }
 
       const result = await saveSaleDeed(dataToSave)
 
@@ -172,6 +174,7 @@ export function SaleDeedCreationForm() {
     { id: "property", label: "சொத்து விவரங்கள்" },
     { id: "payment", label: "பணப்பட்டுவாடா விவரங்கள்" },
     { id: "witness", label: "சாட்சி விவரங்கள்" },
+    { id: "document-editor", label: "ஆவண உருவாக்கி" },
   ]
 
   // Check if a tab has validation errors
@@ -198,7 +201,7 @@ export function SaleDeedCreationForm() {
       <Card className="p-6 border-purple-200 shadow-md">
         <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
           <div className="overflow-x-auto pb-2">
-            <TabsList className="w-full grid-cols-7 mb-6 bg-purple-50 p-1">
+            <TabsList className="w-full grid-cols-8 mb-6 bg-purple-50 p-1">
               {tabs.map((tab, index) => (
                 <TabsTrigger
                   key={tab.id}
@@ -306,6 +309,10 @@ export function SaleDeedCreationForm() {
             />
           </TabsContent>
 
+          <TabsContent value="document-editor" className="mt-2 bg-purple-50 p-6 rounded-lg">
+            <DocumentEditorTab data={formData} documentId={documentId} updateDocumentId={setDocumentId} />
+          </TabsContent>
+
           {/* Navigation and action buttons below tab content */}
           <div className="flex flex-col md:flex-row justify-between mt-6 gap-4">
             <Button
@@ -355,7 +362,7 @@ export function SaleDeedCreationForm() {
 
             <Button
               onClick={goToNextTab}
-              disabled={activeTab === "previous-doc"}
+              disabled={activeTab === "document-editor"}
               className="bg-purple-600 hover:bg-purple-700"
             >
               அடுத்த பக்கம்

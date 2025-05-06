@@ -20,6 +20,7 @@ export async function saveSaleDeed(formData: any) {
       witness_details: formData.witness || [],
       payment_details: formData.payment || {},
       previous_documents: formData.previousDoc || {},
+      document_id: formData.documentId || null,
       updated_at: new Date().toISOString(),
       status: "draft",
     }

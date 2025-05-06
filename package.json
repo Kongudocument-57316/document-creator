@@ -58,12 +58,14 @@
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^0.9.6",
     "zod": "latest",
+    "tinymce": "latest",
     "@tanstack/react-table": "latest",
     "uuid": "latest",
     "html2canvas": "latest",
     "jspdf": "latest",
     "react-to-print": "latest",
-    "@supabase/supabase-js": "latest"
+    "@supabase/supabase-js": "latest",
+    "@tinymce/tinymce-react": "latest"
   },
   "devDependencies": {
     "@types/node": "^22",

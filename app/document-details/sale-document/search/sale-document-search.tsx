@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { DataTable } from "@/components/ui/data-table"
 import { useState, useEffect } from "react"
 import { getSupabaseBrowserClient } from "@/lib/supabase"
-import { Pencil, Eye, Search, FileText } from "lucide-react"
+import { Pencil, Eye, Search, FileText, FileEdit } from "lucide-react"
 import { toast } from "sonner"
 import type { ColumnDef } from "@tanstack/react-table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -26,6 +26,7 @@ interface SaleDocument {
   buyer_name?: string
   property_name?: string
   sale_amount: number
+  document_id?: string
 }
 
 interface BookNumber {
@@ -106,6 +107,7 @@ export function SaleDocumentSearch() {
           document_number,
           document_date,
           sale_amount,
+          document_id,
           book_numbers:book_number_id (number),
           document_types:document_type_id (name),
           properties:property_id (property_name),
@@ -160,6 +162,7 @@ export function SaleDocumentSearch() {
           seller_name: doc.sellers?.name,
           buyer_name: doc.buyers?.name,
           sale_amount: doc.sale_amount,
+          document_id: doc.document_id,
         })) || []
 
       setDocuments(formattedData)
@@ -186,6 +189,14 @@ export function SaleDocumentSearch() {
 
   const handleEdit = (id: number) => {
     router.push(`/document-details/sale-document/edit/${id}`)
+  }
+
+  const handleEditDocument = (id: number, documentId?: string) => {
+    if (documentId) {
+      router.push(`/document-details/sale-document/edit-document/${id}?documentId=${documentId}`)
+    } else {
+      toast.error("ஆவணம் உருவாக்கப்படவில்லை")
+    }
   }
 
   const formatDate = (dateString: string) => {
@@ -247,6 +258,15 @@ export function SaleDocumentSearch() {
             </Button>
             <Button variant="ghost" size="icon" onClick={() => handleEdit(document.id)} className="text-sky-600">
               <Pencil className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => handleEditDocument(document.id, document.document_id)}
+              className="text-purple-600"
+              title="ஆவணத்தை திருத்து"
+            >
+              <FileEdit className="h-4 w-4" />
             </Button>
           </div>
         )
