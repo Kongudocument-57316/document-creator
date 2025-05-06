@@ -8,12 +8,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { getSupabaseBrowserClient } from "@/lib/supabase"
 import { Separator } from "@/components/ui/separator"
 import { Card } from "@/components/ui/card"
-import { Home, MapPin, Plus, FileText } from "lucide-react"
+import { Home, MapPin, Plus, FileText, Calculator } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { SiteDetailsForm } from "../components/site-details-form"
 import { BuildingDetailsForm } from "../components/building-details-form"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Checkbox } from "@/components/ui/checkbox"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 
 interface PropertyTabProps {
   data: any
@@ -24,18 +25,24 @@ export function PropertyTab({ data, updateData }: PropertyTabProps) {
   const [properties, setProperties] = useState<any[]>([])
   const [selectedProperty, setSelectedProperty] = useState<any>(null)
   const [isSearching, setIsSearching] = useState(false)
+  const [isManualEdit, setIsManualEdit] = useState(false)
 
   const [formValues, setFormValues] = useState({
     propertyType: data.propertyType || "",
     propertyAddress: data.propertyAddress || "",
     propertyDescription: data.propertyDescription || "",
     propertyArea: data.propertyArea || "",
-    propertyValue: data.propertyValue || "",
+    propertyValue: data.propertyValue || "0.00",
     northBoundary: data.northBoundary || "",
     southBoundary: data.southBoundary || "",
     eastBoundary: data.eastBoundary || "",
     westBoundary: data.westBoundary || "",
-    propertySelectionType: data.propertySelectionType || "existing",
+    propertySelectionTypes: data.propertySelectionTypes || {
+      existing: data.propertySelectionTypes?.existing || false,
+      site: data.propertySelectionTypes?.site || false,
+      building: data.propertySelectionTypes?.building || false,
+      other: data.propertySelectionTypes?.other || false,
+    },
     siteDetails: data.siteDetails || [],
     buildingDetails: data.buildingDetails || [],
     otherDetails: data.otherDetails || [],
@@ -136,8 +143,11 @@ export function PropertyTab({ data, updateData }: PropertyTabProps) {
     updateData(newValues)
   }
 
-  const handlePropertySelectionTypeChange = (value: string) => {
-    handleChange("propertySelectionType", value)
+  const handlePropertySelectionTypeChange = (type: string, checked: boolean) => {
+    const newSelectionTypes = { ...formValues.propertySelectionTypes, [type]: checked }
+    const newValues = { ...formValues, propertySelectionTypes: newSelectionTypes }
+    setFormValues(newValues)
+    updateData(newValues)
   }
 
   const handleAddSite = (siteData: any) => {
@@ -263,7 +273,7 @@ export function PropertyTab({ data, updateData }: PropertyTabProps) {
     setSelectedProperty(property)
   }
 
-  const handleAddAllToDescription = () => {
+  const handleAddExistingToDescription = () => {
     if (!selectedProperty) return
 
     const propertyDetails = `
@@ -278,7 +288,112 @@ export function PropertyTab({ data, updateData }: PropertyTabProps) {
 வழிகாட்டு மதிப்பு (சதுர அடி): ${selectedProperty.guide_value_sqft || ""}
   `.trim()
 
-    handleChange("propertyDescription", propertyDetails)
+    const currentDescription = formValues.propertyDescription
+    const newDescription = currentDescription ? `${currentDescription}\n\n${propertyDetails}` : propertyDetails
+    handleChange("propertyDescription", newDescription)
+  }
+
+  const handleAddSiteDetailsToDescription = () => {
+    if (formValues.siteDetails.length === 0) return
+
+    const siteDetailsText = formValues.siteDetails
+      .map((site, index) => {
+        return `
+மனை விவரங்கள் #${index + 1}:
+மனை எண்: ${site.plotNumber || "N/A"}
+சர்வே எண்: ${site.surveyNumber || "N/A"}
+மொத்த அளவு: ${site.totalAreaSqFt || "N/A"} சதுரடி
+வடக்கு எல்லை: ${site.northBoundary || "N/A"}
+தெற்கு எல்லை: ${site.southBoundary || "N/A"}
+கிழக்கு எல்லை: ${site.eastBoundary || "N/A"}
+மேற்கு எல்லை: ${site.westBoundary || "N/A"}
+மதிப்பு: ${site.siteValue || "N/A"} ரூபாய்
+      `.trim()
+      })
+      .join("\n\n")
+
+    const currentDescription = formValues.propertyDescription
+    const newDescription = currentDescription ? `${currentDescription}\n\n${siteDetailsText}` : siteDetailsText
+    handleChange("propertyDescription", newDescription)
+  }
+
+  const handleAddBuildingDetailsToDescription = () => {
+    if (formValues.buildingDetails.length === 0) return
+
+    const buildingDetailsText = formValues.buildingDetails
+      .map((building, index) => {
+        return `
+கட்டட விவரங்கள் #${index + 1}:
+கட்டட வகை: ${
+          building.buildingType === "residential"
+            ? "குடியிருப்பு"
+            : building.buildingType === "commercial"
+              ? "வணிக"
+              : building.buildingType === "industrial"
+                ? "தொழில்"
+                : building.buildingType === "agricultural"
+                  ? "விவசாய"
+                  : "N/A"
+        }
+கட்டடத்தின் வயது: ${building.buildingAge || "N/A"} ஆண்டுகள்
+மொத்த பரப்பளவு: ${building.totalAreaSqFt || "N/A"} சதுரடி
+கதவு எண்: ${building.doorNumber || "N/A"}
+திசை: ${building.direction || "N/A"}
+மதிப்பு: ${building.buildingValue || "N/A"} ரூபாய்
+      `.trim()
+      })
+      .join("\n\n")
+
+    const currentDescription = formValues.propertyDescription
+    const newDescription = currentDescription ? `${currentDescription}\n\n${buildingDetailsText}` : buildingDetailsText
+    handleChange("propertyDescription", newDescription)
+  }
+
+  const handleAddOtherDetailsToDescription = () => {
+    if (formValues.otherDetails.length === 0) return
+
+    const otherDetailsText = formValues.otherDetails
+      .map((detail, index) => {
+        return `
+இதர விவரங்கள் #${index + 1}:
+வகை: ${detail.type || "N/A"}
+விளக்கம்: ${detail.description || "N/A"}
+மதிப்பு: ${detail.value || "N/A"} ரூபாய்
+      `.trim()
+      })
+      .join("\n\n")
+
+    const currentDescription = formValues.propertyDescription
+    const newDescription = currentDescription ? `${currentDescription}\n\n${otherDetailsText}` : otherDetailsText
+    handleChange("propertyDescription", newDescription)
+  }
+
+  const recalculatePropertyValue = () => {
+    let totalValue = 0
+
+    // Add site values
+    formValues.siteDetails.forEach((site) => {
+      if (site.siteValue && !isNaN(Number.parseFloat(site.siteValue))) {
+        totalValue += Number.parseFloat(site.siteValue)
+      }
+    })
+
+    // Add building values
+    formValues.buildingDetails.forEach((building) => {
+      if (building.buildingValue && !isNaN(Number.parseFloat(building.buildingValue))) {
+        totalValue += Number.parseFloat(building.buildingValue)
+      }
+    })
+
+    // Add other values
+    formValues.otherDetails.forEach((detail) => {
+      if (detail.value && !isNaN(Number.parseFloat(detail.value))) {
+        totalValue += Number.parseFloat(detail.value)
+      }
+    })
+
+    // Update property value
+    handleChange("propertyValue", totalValue.toFixed(2))
   }
 
   return (
@@ -294,11 +409,8 @@ export function PropertyTab({ data, updateData }: PropertyTabProps) {
           <div className="flex items-center space-x-2">
             <Checkbox
               id="existing-property"
-              checked={formValues.propertySelectionType === "existing"}
-              onCheckedChange={(checked) => {
-                if (checked) handlePropertySelectionTypeChange("existing")
-                else handlePropertySelectionTypeChange("")
-              }}
+              checked={formValues.propertySelectionTypes.existing}
+              onCheckedChange={(checked) => handlePropertySelectionTypeChange("existing", !!checked)}
             />
             <Label htmlFor="existing-property" className="text-purple-700">
               ஏற்கனவே உள்ள சொத்து விவரங்களைப் பயன்படுத்து (Use existing property details)
@@ -307,11 +419,8 @@ export function PropertyTab({ data, updateData }: PropertyTabProps) {
           <div className="flex items-center space-x-2">
             <Checkbox
               id="add-site"
-              checked={formValues.propertySelectionType === "site"}
-              onCheckedChange={(checked) => {
-                if (checked) handlePropertySelectionTypeChange("site")
-                else handlePropertySelectionTypeChange("")
-              }}
+              checked={formValues.propertySelectionTypes.site}
+              onCheckedChange={(checked) => handlePropertySelectionTypeChange("site", !!checked)}
             />
             <Label htmlFor="add-site" className="text-purple-700">
               மனை விவரங்களைச் சேர்க்க (Add site details)
@@ -320,11 +429,8 @@ export function PropertyTab({ data, updateData }: PropertyTabProps) {
           <div className="flex items-center space-x-2">
             <Checkbox
               id="add-building"
-              checked={formValues.propertySelectionType === "building"}
-              onCheckedChange={(checked) => {
-                if (checked) handlePropertySelectionTypeChange("building")
-                else handlePropertySelectionTypeChange("")
-              }}
+              checked={formValues.propertySelectionTypes.building}
+              onCheckedChange={(checked) => handlePropertySelectionTypeChange("building", !!checked)}
             />
             <Label htmlFor="add-building" className="text-purple-700">
               கட்டிடம் விவரங்கள் சேர்க்க (Add building details)
@@ -333,11 +439,8 @@ export function PropertyTab({ data, updateData }: PropertyTabProps) {
           <div className="flex items-center space-x-2">
             <Checkbox
               id="add-other"
-              checked={formValues.propertySelectionType === "other"}
-              onCheckedChange={(checked) => {
-                if (checked) handlePropertySelectionTypeChange("other")
-                else handlePropertySelectionTypeChange("")
-              }}
+              checked={formValues.propertySelectionTypes.other}
+              onCheckedChange={(checked) => handlePropertySelectionTypeChange("other", !!checked)}
             />
             <Label htmlFor="add-other" className="text-purple-700">
               இதர விவரங்கள் சேர்க்க (Add other details)
@@ -345,154 +448,8 @@ export function PropertyTab({ data, updateData }: PropertyTabProps) {
           </div>
         </div>
 
-        {formValues.propertySelectionType === "site" && (
-          <>
-            {!showSiteForm && (
-              <Button
-                onClick={() => {
-                  setShowSiteForm(true)
-                  setEditingSiteIndex(null)
-                }}
-                className="w-full bg-purple-600 hover:bg-purple-700 mb-4"
-              >
-                <Plus className="h-4 w-4 mr-2" /> புதிய மனை விவரங்கள் சேர்க்க (Add New Site Details)
-              </Button>
-            )}
-
-            {showSiteForm && (
-              <SiteDetailsForm
-                onSave={handleAddSite}
-                onCancel={() => {
-                  setShowSiteForm(false)
-                  setEditingSiteIndex(null)
-                }}
-                initialData={editingSiteIndex !== null ? formValues.siteDetails[editingSiteIndex] : {}}
-              />
-            )}
-
-            {formValues.siteDetails.length > 0 && !showSiteForm && (
-              <div className="mt-4">
-                <h4 className="text-md font-medium text-purple-700 mb-3">சேர்க்கப்பட்ட மனை விவரங்கள்</h4>
-                <ScrollArea className="h-[300px] border rounded-md p-4">
-                  <div className="space-y-4">
-                    {formValues.siteDetails.map((site, index) => (
-                      <Card key={site.id} className="p-4 border-purple-200">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <h5 className="font-medium text-purple-800">மனை எண்: {site.plotNumber || "N/A"}</h5>
-                            <p className="text-sm text-gray-600">
-                              சர்வே எண்: {site.surveyNumber || "N/A"} | மொத்த அளவு: {site.totalAreaSqFt || "N/A"} சதுரடி
-                            </p>
-                          </div>
-                          <div className="flex space-x-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleEditSite(index)}
-                              className="h-8 px-2 text-blue-600 border-blue-200 hover:bg-blue-50"
-                            >
-                              திருத்து
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleRemoveSite(index)}
-                              className="h-8 px-2 text-red-600 border-red-200 hover:bg-red-50"
-                            >
-                              நீக்கு
-                            </Button>
-                          </div>
-                        </div>
-                      </Card>
-                    ))}
-                  </div>
-                </ScrollArea>
-              </div>
-            )}
-          </>
-        )}
-
-        {formValues.propertySelectionType === "building" && (
-          <>
-            {!showBuildingForm && (
-              <Button
-                onClick={() => {
-                  setShowBuildingForm(true)
-                  setEditingBuildingIndex(null)
-                }}
-                className="w-full bg-purple-600 hover:bg-purple-700 mb-4"
-              >
-                <Plus className="h-4 w-4 mr-2" /> புதிய கட்டட விவரங்கள் சேர்க்க (Add New Building Details)
-              </Button>
-            )}
-
-            {showBuildingForm && (
-              <BuildingDetailsForm
-                onSave={handleAddBuilding}
-                onCancel={() => {
-                  setShowBuildingForm(false)
-                  setEditingBuildingIndex(null)
-                }}
-                initialData={editingBuildingIndex !== null ? formValues.buildingDetails[editingBuildingIndex] : {}}
-              />
-            )}
-
-            {formValues.buildingDetails.length > 0 && !showBuildingForm && (
-              <div className="mt-4">
-                <h4 className="text-md font-medium text-purple-700 mb-3">சேர்க்கப்பட்ட கட்டட விவரங்கள்</h4>
-                <ScrollArea className="h-[300px] border rounded-md p-4">
-                  <div className="space-y-4">
-                    {formValues.buildingDetails.map((building, index) => (
-                      <Card key={building.id} className="p-4 border-purple-200">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <h5 className="font-medium text-purple-800">
-                              கட்டட வகை:{" "}
-                              {building.buildingType === "residential"
-                                ? "குடியிருப்பு"
-                                : building.buildingType === "commercial"
-                                  ? "வணிக"
-                                  : building.buildingType === "industrial"
-                                    ? "தொழில்"
-                                    : building.buildingType === "agricultural"
-                                      ? "விவசாய"
-                                      : "N/A"}
-                            </h5>
-                            <p className="text-sm text-gray-600">
-                              கட்டடத்தின் வயது: {building.buildingAge || "N/A"} ஆண்டுகள் | மொத்த பரப்பளவு:{" "}
-                              {building.totalAreaSqFt || "N/A"} சதுரடி
-                            </p>
-                          </div>
-                          <div className="flex space-x-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleEditBuilding(index)}
-                              className="h-8 px-2 text-blue-600 border-blue-200 hover:bg-blue-50"
-                            >
-                              திருத்து
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleRemoveBuilding(index)}
-                              className="h-8 px-2 text-red-600 border-red-200 hover:bg-red-50"
-                            >
-                              நீக்கு
-                            </Button>
-                          </div>
-                        </div>
-                      </Card>
-                    ))}
-                  </div>
-                </ScrollArea>
-              </div>
-            )}
-          </>
-        )}
-
-        {formValues.propertySelectionType === "existing" && (
-          <Card className="p-4 border-purple-200">
+        {formValues.propertySelectionTypes.existing && (
+          <Card className="p-4 border-purple-200 mb-6">
             <div className="mb-4">
               <h4 className="text-md font-medium text-purple-700 mb-3">சொத்து தேடல் (Property Search)</h4>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -642,7 +599,11 @@ export function PropertyTab({ data, updateData }: PropertyTabProps) {
                 <div className="flex justify-between items-center mb-2">
                   <h5 className="text-md font-medium text-purple-700">தேடல் முடிவுகள் (Search Results)</h5>
                   {selectedProperty && (
-                    <Button onClick={handleAddAllToDescription} className="bg-green-600 hover:bg-green-700" size="sm">
+                    <Button
+                      onClick={handleAddExistingToDescription}
+                      className="bg-green-600 hover:bg-green-700"
+                      size="sm"
+                    >
                       <Plus className="h-4 w-4 mr-2" /> அனைத்து விவரங்களையும் சேர்க்க
                     </Button>
                   )}
@@ -652,6 +613,7 @@ export function PropertyTab({ data, updateData }: PropertyTabProps) {
                     <thead className="bg-purple-50">
                       <tr>
                         <th className="px-4 py-2 text-left text-purple-700">சொத்து பெயர் (Property Name)</th>
+                        <th className="px-4 py-2 text-left text-purple-700">இடம் (Location)</th>
                         <th className="px-4 py-2 text-left text-purple-700">இடம் (Location)</th>
                         <th className="px-4 py-2 text-left text-purple-700">சர்வே எண் (Survey No)</th>
                         <th className="px-4 py-2 text-left text-purple-700"></th>
@@ -699,28 +661,188 @@ export function PropertyTab({ data, updateData }: PropertyTabProps) {
                 </div>
               </div>
             </div>
-
-            <div className="mt-6">
-              <Label htmlFor="property-description" className="text-purple-700">
-                சொத்து விவரம் (Property Description)
-              </Label>
-              <Textarea
-                id="property-description"
-                placeholder="சொத்து விளக்கத்தை உள்ளிடவும்"
-                value={formValues.propertyDescription}
-                onChange={(e) => handleChange("propertyDescription", e.target.value)}
-                className="mt-1 border-purple-200 focus-visible:ring-purple-400 h-32"
-              />
-            </div>
           </Card>
         )}
 
-        {formValues.propertySelectionType === "other" && (
-          <Card className="p-4 border-purple-200">
-            <h4 className="text-md font-medium text-purple-700 mb-3 flex items-center">
-              <FileText className="h-4 w-4 mr-2 text-purple-600" />
-              இதர விவரங்கள் (Other Details)
-            </h4>
+        {formValues.propertySelectionTypes.site && (
+          <Card className="p-4 border-purple-200 mb-6">
+            {!showSiteForm && (
+              <Button
+                onClick={() => {
+                  setShowSiteForm(true)
+                  setEditingSiteIndex(null)
+                }}
+                className="w-full bg-purple-600 hover:bg-purple-700 mb-4"
+              >
+                <Plus className="h-4 w-4 mr-2" /> புதிய மனை விவரங்கள் சேர்க்க (Add New Site Details)
+              </Button>
+            )}
+
+            {showSiteForm && (
+              <SiteDetailsForm
+                onSave={handleAddSite}
+                onCancel={() => {
+                  setShowSiteForm(false)
+                  setEditingSiteIndex(null)
+                }}
+                initialData={editingSiteIndex !== null ? formValues.siteDetails[editingSiteIndex] : {}}
+              />
+            )}
+
+            {formValues.siteDetails.length > 0 && !showSiteForm && (
+              <div className="mt-4">
+                <div className="flex justify-between items-center mb-3">
+                  <h4 className="text-md font-medium text-purple-700">சேர்க்கப்பட்ட மனை விவரங்கள்</h4>
+                  <Button
+                    onClick={handleAddSiteDetailsToDescription}
+                    className="bg-green-600 hover:bg-green-700"
+                    size="sm"
+                  >
+                    <Plus className="h-4 w-4 mr-2" /> அனைத்து விவரங்களையும் சேர்க்க
+                  </Button>
+                </div>
+                <ScrollArea className="h-[300px] border rounded-md p-4">
+                  <div className="space-y-4">
+                    {formValues.siteDetails.map((site, index) => (
+                      <Card key={site.id || index} className="p-4 border-purple-200">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h5 className="font-medium text-purple-800">மனை எண்: {site.plotNumber || "N/A"}</h5>
+                            <p className="text-sm text-gray-600">
+                              சர்வே எண்: {site.surveyNumber || "N/A"} | மொத்த அளவு: {site.totalAreaSqFt || "N/A"} சதுரடி
+                            </p>
+                          </div>
+                          <div className="flex space-x-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEditSite(index)}
+                              className="h-8 px-2 text-blue-600 border-blue-200 hover:bg-blue-50"
+                            >
+                              திருத்து
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleRemoveSite(index)}
+                              className="h-8 px-2 text-red-600 border-red-200 hover:bg-red-50"
+                            >
+                              நீக்கு
+                            </Button>
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </div>
+            )}
+          </Card>
+        )}
+
+        {formValues.propertySelectionTypes.building && (
+          <Card className="p-4 border-purple-200 mb-6">
+            {!showBuildingForm && (
+              <Button
+                onClick={() => {
+                  setShowBuildingForm(true)
+                  setEditingBuildingIndex(null)
+                }}
+                className="w-full bg-purple-600 hover:bg-purple-700 mb-4"
+              >
+                <Plus className="h-4 w-4 mr-2" /> புதிய கட்டட விவரங்கள் சேர்க்க (Add New Building Details)
+              </Button>
+            )}
+
+            {showBuildingForm && (
+              <BuildingDetailsForm
+                onSave={handleAddBuilding}
+                onCancel={() => {
+                  setShowBuildingForm(false)
+                  setEditingBuildingIndex(null)
+                }}
+                initialData={editingBuildingIndex !== null ? formValues.buildingDetails[editingBuildingIndex] : {}}
+              />
+            )}
+
+            {formValues.buildingDetails.length > 0 && !showBuildingForm && (
+              <div className="mt-4">
+                <div className="flex justify-between items-center mb-3">
+                  <h4 className="text-md font-medium text-purple-700">சேர்க்கப்பட்ட கட்டட விவரங்கள்</h4>
+                  <Button
+                    onClick={handleAddBuildingDetailsToDescription}
+                    className="bg-green-600 hover:bg-green-700"
+                    size="sm"
+                  >
+                    <Plus className="h-4 w-4 mr-2" /> அனைத்து விவரங்களையும் சேர்க்க
+                  </Button>
+                </div>
+                <ScrollArea className="h-[300px] border rounded-md p-4">
+                  <div className="space-y-4">
+                    {formValues.buildingDetails.map((building, index) => (
+                      <Card key={building.id || index} className="p-4 border-purple-200">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h5 className="font-medium text-purple-800">
+                              கட்டட வகை:{" "}
+                              {building.buildingType === "residential"
+                                ? "குடியிருப்பு"
+                                : building.buildingType === "commercial"
+                                  ? "வணிக"
+                                  : building.buildingType === "industrial"
+                                    ? "தொழில்"
+                                    : building.buildingType === "agricultural"
+                                      ? "விவசாய"
+                                      : "N/A"}
+                            </h5>
+                            <p className="text-sm text-gray-600">
+                              கட்டடத்தின் வயது: {building.buildingAge || "N/A"} ஆண்டுகள் | மொத்த பரப்பளவு:
+                              {building.totalAreaSqFt || "N/A"} சதுரடி
+                            </p>
+                          </div>
+                          <div className="flex space-x-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEditBuilding(index)}
+                              className="h-8 px-2 text-blue-600 border-blue-200 hover:bg-blue-50"
+                            >
+                              திருத்து
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleRemoveBuilding(index)}
+                              className="h-8 px-2 text-red-600 border-red-200 hover:bg-red-50"
+                            >
+                              நீக்கு
+                            </Button>
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </div>
+            )}
+          </Card>
+        )}
+
+        {formValues.propertySelectionTypes.other && (
+          <Card className="p-4 border-purple-200 mb-6">
+            <div className="flex justify-between items-center mb-3">
+              <h4 className="text-md font-medium text-purple-700 flex items-center">
+                <FileText className="h-4 w-4 mr-2 text-purple-600" />
+                இதர விவரங்கள் (Other Details)
+              </h4>
+              <Button
+                onClick={handleAddOtherDetailsToDescription}
+                className="bg-green-600 hover:bg-green-700"
+                size="sm"
+              >
+                <Plus className="h-4 w-4 mr-2" /> அனைத்து விவரங்களையும் சேர்க்க
+              </Button>
+            </div>
 
             <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -767,6 +889,58 @@ export function PropertyTab({ data, updateData }: PropertyTabProps) {
             </div>
           </Card>
         )}
+
+        {/* Property Description - Always visible */}
+        <Card className="p-4 border-purple-200 mb-6">
+          <Label htmlFor="property-description" className="text-purple-700">
+            சொத்து விவரம் (Property Description)
+          </Label>
+          <Textarea
+            id="property-description"
+            placeholder="சொத்து விளக்கத்தை உள்ளிடவும்"
+            value={formValues.propertyDescription}
+            onChange={(e) => handleChange("propertyDescription", e.target.value)}
+            className="mt-1 border-purple-200 focus-visible:ring-purple-400 h-32"
+          />
+        </Card>
+
+        {/* Total Value Section */}
+        <Card className="p-4 border-purple-200">
+          <div className="flex items-center justify-between">
+            <h4 className="text-md font-medium text-purple-700">இந்த ஆவணத்தின் மொத்த மதிப்பு (Total Value of this Deed)</h4>
+            <div className="flex items-center">
+              <RadioGroup
+                value={isManualEdit ? "manual" : "auto"}
+                onValueChange={(value) => setIsManualEdit(value === "manual")}
+                className="flex items-center space-x-2"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="manual" id="manual-edit" />
+                  <Label htmlFor="manual-edit" className="text-sm text-purple-700">
+                    கைமுறையாக திருத்த (Manual Edit)
+                  </Label>
+                </div>
+              </RadioGroup>
+            </div>
+          </div>
+          <div className="flex items-center mt-2">
+            <Input
+              value={formValues.propertyValue}
+              onChange={(e) => handleChange("propertyValue", e.target.value)}
+              className="border-purple-200 focus-visible:ring-purple-400"
+              readOnly={!isManualEdit}
+            />
+            <Button
+              variant="outline"
+              className="ml-2 border-purple-300 text-purple-700"
+              onClick={recalculatePropertyValue}
+            >
+              <Calculator className="h-4 w-4 mr-2" />
+              மீண்டும் கணக்கிடு (Recalculate)
+            </Button>
+          </div>
+          <p className="text-xs text-gray-500 mt-1">தானாக கணக்கிடப்பட்ட மதிப்பு (Automatically calculated value)</p>
+        </Card>
       </div>
     </div>
   )
