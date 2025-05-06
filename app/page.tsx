@@ -16,7 +16,7 @@ export default function Home() {
               <CardDescription>System Settings</CardDescription>
             </CardHeader>
             <CardContent className="pt-6">
-              <p className="text-gray-600">அமைப்பு விவரங்களை நிர்வகிக்கவும்</p>
+              <p className="text-gray-600">���மைப்பு விவரங்களை நிர்வகிக்கவும்</p>
             </CardContent>
             <CardFooter>
               <Link href="/system-settings" className="w-full">

@@ -734,7 +734,7 @@ export function SaleDocumentForm() {
             disabled={isLoading}
             className="border-cyan-300 text-cyan-700 hover:bg-cyan-100"
           >
-            ரத்து செய்
+            ரத்து ��ெய்
           </Button>
         </div>
       </form>

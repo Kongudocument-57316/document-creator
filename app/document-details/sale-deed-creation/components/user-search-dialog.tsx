@@ -120,7 +120,7 @@ export function UserSearchDialog({
     },
     {
       accessorKey: "relation_type",
-      header: "உறவுமுறை",
+      header: "உறவுமு���ை",
     },
     {
       accessorKey: "relative_name",

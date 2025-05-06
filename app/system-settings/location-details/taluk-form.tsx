@@ -116,7 +116,7 @@ export function TalukForm() {
     }
 
     if (!districtId) {
-      toast.error("மாவட்டத்தை தேர்ந்தெடுக்கவும்")
+      toast.error("மாவட்டத்தை தேர்ந்தெட��க்கவும்")
       return
     }
 

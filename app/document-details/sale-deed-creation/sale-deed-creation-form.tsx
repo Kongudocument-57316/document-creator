@@ -82,24 +82,31 @@ export function SaleDeedCreationForm() {
       <Card className="p-6 border-purple-200 shadow-md">
         <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
           <div className="overflow-x-auto pb-2">
-            <TabsList className="w-full grid grid-cols-7 mb-6 bg-purple-50 p-1">
+            <TabsList className="w-full grid-cols-7 mb-6 bg-purple-50 p-1">
               <TabsTrigger
                 value="deed"
                 className="data-[state=active]:bg-purple-600 data-[state=active]:text-white py-2 text-sm"
               >
                 ஆவண அடிப்படை விவரங்கள்
               </TabsTrigger>
-              <TabsTrigger
-                value="seller"
-                className="data-[state=active]:bg-purple-600 data-[state=active]:text-white py-2 text-sm"
-              >
-                விற்பனையாளர் விவரங்கள்
-              </TabsTrigger>
+             
               <TabsTrigger
                 value="buyer"
                 className="data-[state=active]:bg-purple-600 data-[state=active]:text-white py-2 text-sm"
               >
                 வாங்குபவர் விவரங்கள்
+              </TabsTrigger>
+               <TabsTrigger
+                value="seller"
+                className="data-[state=active]:bg-purple-600 data-[state=active]:text-white py-2 text-sm"
+              >
+                விற்பனையாளர் விவரங்கள்
+              </TabsTrigger>
+               <TabsTrigger
+                value="previous-doc"
+                className="data-[state=active]:bg-purple-600 data-[state=active]:text-white py-2 text-sm"
+              >
+                முந்தைய ஆவண விவரங்கள்
               </TabsTrigger>
               <TabsTrigger
                 value="property"
@@ -119,12 +126,7 @@ export function SaleDeedCreationForm() {
               >
                 சாட்சி விவரங்கள்
               </TabsTrigger>
-              <TabsTrigger
-                value="previous-doc"
-                className="data-[state=active]:bg-purple-600 data-[state=active]:text-white py-2 text-sm"
-              >
-                முந்தைய ஆவண விவரங்கள்
-              </TabsTrigger>
+             
             </TabsList>
           </div>
 
