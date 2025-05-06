@@ -78,7 +78,7 @@ export function SaleDeedCreationForm() {
   }
 
   const goToPreviousTab = () => {
-    const tabs = ["deed", "seller", "buyer", "property", "payment", "witness", "previous-doc", "document-editor"]
+    const tabs = ["deed", "buyer", "seller", "previous-doc", "property", "payment", "witness", "document-editor"]
     const currentIndex = tabs.indexOf(activeTab)
     if (currentIndex > 0) {
       setActiveTab(tabs[currentIndex - 1])
@@ -86,7 +86,7 @@ export function SaleDeedCreationForm() {
   }
 
   const goToNextTab = () => {
-    const tabs = ["deed", "seller", "buyer", "property", "payment", "witness", "previous-doc", "document-editor"]
+    const tabs = ["deed", "buyer", "seller", "previous-doc", "property", "payment", "witness", "document-editor"]
     const currentIndex = tabs.indexOf(activeTab)
     if (currentIndex < tabs.length - 1) {
       setActiveTab(tabs[currentIndex + 1])
