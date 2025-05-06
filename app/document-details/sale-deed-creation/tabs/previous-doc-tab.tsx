@@ -7,8 +7,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { getSupabaseBrowserClient } from "@/lib/supabase"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Button } from "@/components/ui/button"
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
-import { Plus } from "lucide-react"
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card"
+import { Plus, Eye, Pencil, Trash2 } from "lucide-react"
+import { DocumentDetailDialog } from "../components/document-detail-dialog"
+import { DeleteConfirmationDialog } from "../components/delete-confirmation-dialog"
+import { v4 as uuidv4 } from "uuid"
 
 interface SubRegistrarOffice {
   id: number
@@ -36,10 +39,22 @@ interface Seller {
   [key: string]: any
 }
 
+interface PreviousDocument {
+  id: string
+  sellerId?: string
+  sellerName?: string
+  previousDocDate: string
+  subRegistrarOfficeId: string
+  bookNumberId: string
+  documentYear: string
+  documentNumber: string
+  documentTypeId: string
+  submissionTypeId: string
+}
+
 interface PreviousDocTabProps {
   data: any
   updateData: (data: any) => void
-  // We need access to the sellers data from the parent component
   sellers?: Seller[]
 }
 
@@ -51,9 +66,19 @@ export function PreviousDocTab({ data, updateData, sellers = [] }: PreviousDocTa
   const [submissionTypes, setSubmissionTypes] = useState<SubmissionType[]>([])
   const [loading, setLoading] = useState(true)
 
+  // Dialog states
+  const [viewDialogOpen, setViewDialogOpen] = useState(false)
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [selectedDocument, setSelectedDocument] = useState<PreviousDocument | null>(null)
+  const [selectedSellerIndex, setSelectedSellerIndex] = useState<number | null>(null)
+  const [addDialogOpen, setAddDialogOpen] = useState(false)
+  const [newDocumentSellerId, setNewDocumentSellerId] = useState<string | null>(null)
+
   const [formValues, setFormValues] = useState({
     documentMode: data.documentMode || "singleSellerSingleDoc",
     commonDocument: data.commonDocument || {
+      id: uuidv4(),
       previousDocDate: "",
       subRegistrarOfficeId: "",
       bookNumberId: "",
@@ -63,6 +88,7 @@ export function PreviousDocTab({ data, updateData, sellers = [] }: PreviousDocTa
       submissionTypeId: "",
     },
     sellerDocuments: data.sellerDocuments || [],
+    additionalDocuments: data.additionalDocuments || [],
   })
 
   const supabase = getSupabaseBrowserClient()
@@ -87,6 +113,7 @@ export function PreviousDocTab({ data, updateData, sellers = [] }: PreviousDocTa
           return existingDoc
         } else {
           return {
+            id: uuidv4(),
             sellerId: seller.id,
             sellerName: seller.name,
             previousDocDate: "",
@@ -194,9 +221,167 @@ export function PreviousDocTab({ data, updateData, sellers = [] }: PreviousDocTa
   }
 
   // Add a new PR document for a seller
-  const addPrDocument = (sellerIndex: number) => {
-    // Implementation for adding multiple PR documents per seller would go here
-    // This is a placeholder for future implementation
+  const addPrDocument = (sellerId: string, sellerName: string) => {
+    setNewDocumentSellerId(sellerId)
+    setSelectedDocument({
+      id: uuidv4(),
+      sellerId,
+      sellerName,
+      previousDocDate: "",
+      subRegistrarOfficeId: "",
+      bookNumberId: "",
+      documentYear: "",
+      documentNumber: "",
+      documentTypeId: "",
+      submissionTypeId: "",
+    })
+    setAddDialogOpen(true)
+  }
+
+  // Add a new common PR document
+  const addCommonPrDocument = () => {
+    setNewDocumentSellerId(null)
+    setSelectedDocument({
+      id: uuidv4(),
+      previousDocDate: "",
+      subRegistrarOfficeId: "",
+      bookNumberId: "",
+      documentYear: "",
+      documentNumber: "",
+      documentTypeId: "",
+      submissionTypeId: "",
+    })
+    setAddDialogOpen(true)
+  }
+
+  // Save a new document
+  const handleSaveNewDocument = (newDoc: PreviousDocument) => {
+    if (newDocumentSellerId) {
+      // Add to seller's additional documents
+      const updatedAdditionalDocs = [...(formValues.additionalDocuments || [])]
+      updatedAdditionalDocs.push(newDoc)
+
+      setFormValues((prev) => ({
+        ...prev,
+        additionalDocuments: updatedAdditionalDocs,
+      }))
+
+      updateData({
+        ...formValues,
+        additionalDocuments: updatedAdditionalDocs,
+      })
+    } else {
+      // Add to common additional documents
+      const updatedAdditionalDocs = [...(formValues.additionalDocuments || [])]
+      updatedAdditionalDocs.push(newDoc)
+
+      setFormValues((prev) => ({
+        ...prev,
+        additionalDocuments: updatedAdditionalDocs,
+      }))
+
+      updateData({
+        ...formValues,
+        additionalDocuments: updatedAdditionalDocs,
+      })
+    }
+  }
+
+  // View document details
+  const handleViewDocument = (document: PreviousDocument) => {
+    setSelectedDocument(document)
+    setViewDialogOpen(true)
+  }
+
+  // Edit document
+  const handleEditDocument = (document: PreviousDocument, sellerIndex?: number) => {
+    setSelectedDocument(document)
+    if (sellerIndex !== undefined) {
+      setSelectedSellerIndex(sellerIndex)
+    } else {
+      setSelectedSellerIndex(null)
+    }
+    setEditDialogOpen(true)
+  }
+
+  // Update document after edit
+  const handleUpdateDocument = (updatedDoc: PreviousDocument) => {
+    if (selectedSellerIndex !== null) {
+      // Update seller document
+      const updatedSellerDocs = [...formValues.sellerDocuments]
+      updatedSellerDocs[selectedSellerIndex] = {
+        ...updatedSellerDocs[selectedSellerIndex],
+        ...updatedDoc,
+      }
+
+      setFormValues((prev) => ({
+        ...prev,
+        sellerDocuments: updatedSellerDocs,
+      }))
+
+      updateData({
+        ...formValues,
+        sellerDocuments: updatedSellerDocs,
+      })
+    } else if (updatedDoc.id === formValues.commonDocument.id) {
+      // Update common document
+      setFormValues((prev) => ({
+        ...prev,
+        commonDocument: updatedDoc,
+      }))
+
+      updateData({
+        ...formValues,
+        commonDocument: updatedDoc,
+      })
+    } else {
+      // Update additional document
+      const updatedAdditionalDocs = [...(formValues.additionalDocuments || [])]
+      const docIndex = updatedAdditionalDocs.findIndex((doc) => doc.id === updatedDoc.id)
+
+      if (docIndex !== -1) {
+        updatedAdditionalDocs[docIndex] = updatedDoc
+
+        setFormValues((prev) => ({
+          ...prev,
+          additionalDocuments: updatedAdditionalDocs,
+        }))
+
+        updateData({
+          ...formValues,
+          additionalDocuments: updatedAdditionalDocs,
+        })
+      }
+    }
+  }
+
+  // Delete document
+  const handleDeleteDocument = (document: PreviousDocument) => {
+    setSelectedDocument(document)
+    setDeleteDialogOpen(true)
+  }
+
+  // Confirm delete document
+  const confirmDeleteDocument = () => {
+    if (!selectedDocument) return
+
+    // If it's an additional document
+    if (formValues.additionalDocuments?.some((doc) => doc.id === selectedDocument.id)) {
+      const updatedAdditionalDocs = formValues.additionalDocuments.filter((doc) => doc.id !== selectedDocument.id)
+
+      setFormValues((prev) => ({
+        ...prev,
+        additionalDocuments: updatedAdditionalDocs,
+      }))
+
+      updateData({
+        ...formValues,
+        additionalDocuments: updatedAdditionalDocs,
+      })
+    }
+
+    setDeleteDialogOpen(false)
+    setSelectedDocument(null)
   }
 
   // Function to validate date format (DD/MM/YYYY)
@@ -321,6 +506,27 @@ export function PreviousDocTab({ data, updateData, sellers = [] }: PreviousDocTa
             </SelectContent>
           </Select>
         </div>
+
+        <div className="flex justify-end space-x-2 mt-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleViewDocument(formValues.commonDocument)}
+            className="border-purple-300 text-purple-700 hover:bg-purple-100"
+          >
+            <Eye className="h-4 w-4 mr-2" />
+            காண்
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleEditDocument(formValues.commonDocument)}
+            className="border-purple-300 text-purple-700 hover:bg-purple-100"
+          >
+            <Pencil className="h-4 w-4 mr-2" />
+            திருத்து
+          </Button>
+        </div>
       </div>
     )
   }
@@ -335,7 +541,7 @@ export function PreviousDocTab({ data, updateData, sellers = [] }: PreviousDocTa
             <Button
               variant="outline"
               size="sm"
-              onClick={() => addPrDocument(index)}
+              onClick={() => addPrDocument(seller.sellerId, seller.sellerName)}
               className="border-purple-300 text-purple-700 hover:bg-purple-100"
             >
               <Plus className="h-4 w-4 mr-2" />
@@ -458,7 +664,92 @@ export function PreviousDocTab({ data, updateData, sellers = [] }: PreviousDocTa
             </div>
           </div>
         </CardContent>
+        <CardFooter className="flex justify-end space-x-2 bg-gray-50 rounded-b-lg">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleViewDocument(seller)}
+            className="border-purple-300 text-purple-700 hover:bg-purple-100"
+          >
+            <Eye className="h-4 w-4 mr-2" />
+            காண்
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleEditDocument(seller, index)}
+            className="border-purple-300 text-purple-700 hover:bg-purple-100"
+          >
+            <Pencil className="h-4 w-4 mr-2" />
+            திருத்து
+          </Button>
+        </CardFooter>
       </Card>
+    )
+  }
+
+  // Render additional documents
+  const renderAdditionalDocuments = () => {
+    if (!formValues.additionalDocuments || formValues.additionalDocuments.length === 0) {
+      return null
+    }
+
+    return (
+      <div className="mt-6">
+        <h4 className="text-lg font-semibold text-purple-700 mb-4">கூடுதல் ஆவணங்கள்</h4>
+        {formValues.additionalDocuments.map((doc, index) => (
+          <Card key={doc.id} className="border-purple-200 mb-4">
+            <CardHeader className="bg-purple-50 rounded-t-lg py-3">
+              <div className="flex justify-between items-center">
+                <CardTitle className="text-purple-700 text-md">
+                  {doc.sellerName ? `${doc.sellerName} - கூடுதல் ஆவணம் ${index + 1}` : `கூடுதல் ஆவணம் ${index + 1}`}
+                </CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="py-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label className="font-medium">ஆவண தேதி</Label>
+                  <p className="text-sm">{doc.previousDocDate || "-"}</p>
+                </div>
+                <div>
+                  <Label className="font-medium">ஆவண எண்</Label>
+                  <p className="text-sm">{doc.documentNumber || "-"}</p>
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter className="flex justify-end space-x-2 bg-gray-50 rounded-b-lg py-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleViewDocument(doc)}
+                className="border-purple-300 text-purple-700 hover:bg-purple-100"
+              >
+                <Eye className="h-4 w-4 mr-2" />
+                காண்
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleEditDocument(doc)}
+                className="border-purple-300 text-purple-700 hover:bg-purple-100"
+              >
+                <Pencil className="h-4 w-4 mr-2" />
+                திருத்து
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleDeleteDocument(doc)}
+                className="border-red-300 text-red-700 hover:bg-red-50"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                நீக்கு
+              </Button>
+            </CardFooter>
+          </Card>
+        ))}
+      </div>
     )
   }
 
@@ -519,13 +810,23 @@ export function PreviousDocTab({ data, updateData, sellers = [] }: PreviousDocTa
       {/* Display the appropriate form based on the selected mode */}
       {(documentMode === "singleSellerSingleDoc" || documentMode === "multiSellerSingleDoc") && (
         <>
-          <div className="mb-4">
-            <h4 className="text-lg font-semibold text-purple-700">பொதுவான ஆவண விவரங்கள்</h4>
-            <p className="text-sm text-gray-600">
-              {documentMode === "singleSellerSingleDoc"
-                ? "விற்பனையாளருக்கான ஆவண விவரங்கள்"
-                : "அனைத்து விற்பனையாளர்களுக்கான பொதுவான ஆவண விவரங்கள்"}
-            </p>
+          <div className="mb-4 flex justify-between items-center">
+            <div>
+              <h4 className="text-lg font-semibold text-purple-700">பொதுவான ஆவண விவரங்கள்</h4>
+              <p className="text-sm text-gray-600">
+                {documentMode === "singleSellerSingleDoc"
+                  ? "விற்பனையாளருக்கான ஆவண விவரங்கள்"
+                  : "அனைத்து விற்பனையாளர்களுக்கான பொதுவான ஆவண விவரங்கள்"}
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              onClick={addCommonPrDocument}
+              className="border-purple-300 text-purple-700 hover:bg-purple-100"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              கூடுதல் ஆவணம் சேர்
+            </Button>
           </div>
           {renderCommonDocumentForm()}
         </>
@@ -552,6 +853,43 @@ export function PreviousDocTab({ data, updateData, sellers = [] }: PreviousDocTa
           )}
         </>
       )}
+
+      {/* Render additional documents */}
+      {renderAdditionalDocuments()}
+
+      {/* View Document Dialog */}
+      <DocumentDetailDialog
+        isOpen={viewDialogOpen}
+        onClose={() => setViewDialogOpen(false)}
+        document={selectedDocument}
+        readOnly={true}
+        title="ஆவண விவரங்களைக் காண்"
+      />
+
+      {/* Edit Document Dialog */}
+      <DocumentDetailDialog
+        isOpen={editDialogOpen}
+        onClose={() => setEditDialogOpen(false)}
+        document={selectedDocument}
+        onSave={handleUpdateDocument}
+        title="ஆவண விவரங்களைத் திருத்து"
+      />
+
+      {/* Add Document Dialog */}
+      <DocumentDetailDialog
+        isOpen={addDialogOpen}
+        onClose={() => setAddDialogOpen(false)}
+        document={selectedDocument}
+        onSave={handleSaveNewDocument}
+        title="புதிய ஆவணம் சேர்"
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteConfirmationDialog
+        isOpen={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+        onConfirm={confirmDeleteDocument}
+      />
     </div>
   )
 }
