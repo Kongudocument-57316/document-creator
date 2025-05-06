@@ -10,6 +10,7 @@ import { Separator } from "@/components/ui/separator"
 import { Card } from "@/components/ui/card"
 import { Home, MapPin, Ruler } from "lucide-react"
 import { useEffect } from "react"
+import { RequiredFieldLabel } from "../components/required-field-label"
 
 interface PropertyTabProps {
   data: any
@@ -68,11 +69,11 @@ export function PropertyTab({ data, updateData }: PropertyTabProps) {
         <Card className="p-4 border-purple-200">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="property-type" className="text-purple-700">
+              <RequiredFieldLabel htmlFor="property-type" className="text-purple-700">
                 சொத்து வகை (Property Type)
-              </Label>
+              </RequiredFieldLabel>
               <Select value={formValues.propertyType} onValueChange={(value) => handleChange("propertyType", value)}>
-                <SelectTrigger className="mt-1 border-purple-200 focus-visible:ring-purple-400">
+                <SelectTrigger id="property-type" className="mt-1 border-purple-200 focus-visible:ring-purple-400">
                   <SelectValue placeholder="சொத்து வகையைத் தேர்ந்தெடுக்கவும்" />
                 </SelectTrigger>
                 <SelectContent>
@@ -86,9 +87,9 @@ export function PropertyTab({ data, updateData }: PropertyTabProps) {
             </div>
 
             <div>
-              <Label htmlFor="property-value" className="text-purple-700">
+              <RequiredFieldLabel htmlFor="property-value" className="text-purple-700">
                 சொத்தின் மதிப்பு (Property Value)
-              </Label>
+              </RequiredFieldLabel>
               <Input
                 id="property-value"
                 placeholder="சொத்தின் மதிப்பை உள்ளிடவும்"
@@ -109,9 +110,9 @@ export function PropertyTab({ data, updateData }: PropertyTabProps) {
           </h4>
           <div className="space-y-4">
             <div>
-              <Label htmlFor="property-address" className="text-purple-700">
+              <RequiredFieldLabel htmlFor="property-address" className="text-purple-700">
                 சொத்து முகவரி (Property Address)
-              </Label>
+              </RequiredFieldLabel>
               <Textarea
                 id="property-address"
                 placeholder="சொத்து முகவரியை உள்ளிடவும்"
@@ -145,9 +146,9 @@ export function PropertyTab({ data, updateData }: PropertyTabProps) {
           </h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
-              <Label htmlFor="property-area" className="text-purple-700">
+              <RequiredFieldLabel htmlFor="property-area" className="text-purple-700">
                 சொத்தின் அளவு (Property Area)
-              </Label>
+              </RequiredFieldLabel>
               <Input
                 id="property-area"
                 placeholder="சொத்தின் அளவை உள்ளிடவும்"

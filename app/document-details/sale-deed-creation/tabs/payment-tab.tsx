@@ -9,6 +9,7 @@ import { getSupabaseBrowserClient } from "@/lib/supabase"
 import { Separator } from "@/components/ui/separator"
 import { Card } from "@/components/ui/card"
 import { CreditCard, Calendar, DollarSign } from "lucide-react"
+import { RequiredFieldLabel } from "../components/required-field-label"
 
 interface PaymentTabProps {
   data: any
@@ -95,9 +96,9 @@ export function PaymentTab({ data, updateData }: PaymentTabProps) {
           </h4>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <Label htmlFor="total-amount" className="text-purple-700">
+              <RequiredFieldLabel htmlFor="total-amount" className="text-purple-700">
                 மொத்த தொகை (Total Amount)
-              </Label>
+              </RequiredFieldLabel>
               <Input
                 id="total-amount"
                 placeholder="மொத்த தொகையை உள்ளிடவும்"
@@ -145,11 +146,11 @@ export function PaymentTab({ data, updateData }: PaymentTabProps) {
           </h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="payment-method" className="text-purple-700">
+              <RequiredFieldLabel htmlFor="payment-method" className="text-purple-700">
                 பணம் செலுத்தும் முறை (Payment Method)
-              </Label>
+              </RequiredFieldLabel>
               <Select value={formValues.paymentMethod} onValueChange={(value) => handleChange("paymentMethod", value)}>
-                <SelectTrigger className="mt-1 border-purple-200 focus-visible:ring-purple-400">
+                <SelectTrigger id="payment-method" className="mt-1 border-purple-200 focus-visible:ring-purple-400">
                   <SelectValue placeholder="பணம் செலுத்தும் முறையைத் தேர்ந்தெடுக்கவும்" />
                 </SelectTrigger>
                 <SelectContent>

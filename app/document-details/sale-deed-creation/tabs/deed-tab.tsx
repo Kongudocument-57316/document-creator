@@ -8,6 +8,7 @@ import { getSupabaseBrowserClient } from "@/lib/supabase"
 import { Separator } from "@/components/ui/separator"
 import { Card } from "@/components/ui/card"
 import { CalendarIcon, Building2, User, Phone } from "lucide-react"
+import { RequiredFieldLabel } from "../components/required-field-label"
 
 interface RegistrationOffice {
   id: number
@@ -131,14 +132,14 @@ export function DeedTab({ data, updateData }: DeedTabProps) {
 
         <Card className="p-4 border-purple-200">
           <div>
-            <Label htmlFor="registration-office" className="text-purple-700">
+            <RequiredFieldLabel htmlFor="registration-office" className="text-purple-700">
               ஆவணம் பதிவு செய்யும் சார்பதிவாளர் அலுவலகம் (Registration Office)
-            </Label>
+            </RequiredFieldLabel>
             <Select
               value={formValues.registrationOfficeId}
               onValueChange={(value) => handleChange("registrationOfficeId", value)}
             >
-              <SelectTrigger className="mt-1 border-purple-200 focus-visible:ring-purple-400">
+              <SelectTrigger id="registration-office" className="mt-1 border-purple-200 focus-visible:ring-purple-400">
                 <SelectValue placeholder="சார்பதிவாளர் அலுவலகத்தைத் தேர்ந்தெடுக்கவும்" />
               </SelectTrigger>
               <SelectContent>
@@ -161,9 +162,9 @@ export function DeedTab({ data, updateData }: DeedTabProps) {
           </h4>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <Label htmlFor="day" className="text-purple-700">
+              <RequiredFieldLabel htmlFor="day" className="text-purple-700">
                 தேதி (Date)
-              </Label>
+              </RequiredFieldLabel>
               <Input
                 id="day"
                 placeholder="தேதி (01-31)"
@@ -175,11 +176,11 @@ export function DeedTab({ data, updateData }: DeedTabProps) {
             </div>
 
             <div>
-              <Label htmlFor="month" className="text-purple-700">
+              <RequiredFieldLabel htmlFor="month" className="text-purple-700">
                 மாதம் (Month)
-              </Label>
+              </RequiredFieldLabel>
               <Select value={formValues.month} onValueChange={(value) => handleChange("month", value)}>
-                <SelectTrigger className="mt-1 border-purple-200 focus-visible:ring-purple-400">
+                <SelectTrigger id="month" className="mt-1 border-purple-200 focus-visible:ring-purple-400">
                   <SelectValue placeholder="மாதத்தைத் தேர்ந்தெடுக்கவும்" />
                 </SelectTrigger>
                 <SelectContent>
@@ -193,9 +194,9 @@ export function DeedTab({ data, updateData }: DeedTabProps) {
             </div>
 
             <div>
-              <Label htmlFor="year" className="text-purple-700">
+              <RequiredFieldLabel htmlFor="year" className="text-purple-700">
                 ஆண்டு (Year)
-              </Label>
+              </RequiredFieldLabel>
               <Input
                 id="year"
                 placeholder="ஆண்டை உள்ளிடவும்"
@@ -217,14 +218,14 @@ export function DeedTab({ data, updateData }: DeedTabProps) {
           </h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="document-preparer" className="text-purple-700">
+              <RequiredFieldLabel htmlFor="document-preparer" className="text-purple-700">
                 ஆவணம் தயாரித்தவர் (Document Preparer)
-              </Label>
+              </RequiredFieldLabel>
               <Select
                 value={formValues.documentPreparerId}
                 onValueChange={(value) => handleChange("documentPreparerId", value)}
               >
-                <SelectTrigger className="mt-1 border-purple-200 focus-visible:ring-purple-400">
+                <SelectTrigger id="document-preparer" className="mt-1 border-purple-200 focus-visible:ring-purple-400">
                   <SelectValue placeholder="ஆவணம் தயாரித்தவரைத் தேர்ந்தெடுக்கவும்" />
                 </SelectTrigger>
                 <SelectContent>
@@ -267,7 +268,7 @@ export function DeedTab({ data, updateData }: DeedTabProps) {
               தட்டச்சு அலுவலகத்தின் பெயர் (Typing Office Name)
             </Label>
             <Select value={formValues.typingOfficeId} onValueChange={(value) => handleChange("typingOfficeId", value)}>
-              <SelectTrigger className="mt-1 border-purple-200 focus-visible:ring-purple-400">
+              <SelectTrigger id="typing-office" className="mt-1 border-purple-200 focus-visible:ring-purple-400">
                 <SelectValue placeholder="தட்டச்சு அலுவலகத்தைத் தேர்ந்தெடுக்கவும்" />
               </SelectTrigger>
               <SelectContent>

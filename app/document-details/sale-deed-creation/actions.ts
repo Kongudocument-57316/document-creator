@@ -1,18 +1,18 @@
 "use server"
 
 import { getSupabaseServerClient } from "@/lib/supabase"
-import { revalidatePath } from "next/cache"
+import { v4 as uuidv4 } from "uuid"
 
 export async function saveSaleDeed(formData: any) {
   try {
     const supabase = getSupabaseServerClient()
 
-    // Generate a unique ID if not provided
-    const deedId = formData.id || `deed_${Date.now()}`
+    // Generate a new ID if one doesn't exist
+    const id = formData.id || uuidv4()
 
-    // Prepare the data for storage
+    // Prepare data for saving
     const deedData = {
-      id: deedId,
+      id,
       deed_details: formData.deed || {},
       seller_details: formData.seller || [],
       buyer_details: formData.buyer || [],
@@ -20,24 +20,26 @@ export async function saveSaleDeed(formData: any) {
       witness_details: formData.witness || [],
       payment_details: formData.payment || {},
       previous_documents: formData.previousDoc || {},
-      created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       status: "draft",
     }
 
-    // Save to the database
-    const { data, error } = await supabase.from("sale_deeds").upsert(deedData, { onConflict: "id" }).select()
-
-    if (error) {
-      throw new Error(`Error saving sale deed: ${error.message}`)
+    // If this is a new record, set created_at
+    if (!formData.id) {
+      deedData.created_at = new Date().toISOString()
     }
 
-    // Revalidate the path to refresh the data
-    revalidatePath("/document-details/sale-deed-creation")
+    // Upsert the record (insert if not exists, update if exists)
+    const { error } = await supabase.from("sale_deeds").upsert(deedData)
 
-    return { success: true, data, id: deedId }
-  } catch (error: any) {
-    console.error("Error saving sale deed:", error)
-    return { success: false, error: error.message }
+    if (error) {
+      console.error("Error saving sale deed:", error)
+      return { success: false, error: error.message }
+    }
+
+    return { success: true, id }
+  } catch (error) {
+    console.error("Unexpected error saving sale deed:", error)
+    return { success: false, error: "Unexpected error occurred" }
   }
 }

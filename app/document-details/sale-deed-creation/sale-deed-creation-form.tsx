@@ -12,12 +12,14 @@ import { WitnessTab } from "./tabs/witness-tab"
 import { PaymentTab } from "./tabs/payment-tab"
 import { DeedTab } from "./tabs/deed-tab"
 import { useRouter } from "next/navigation"
-import { Home, ArrowLeft, Save, ArrowRight, Loader2 } from "lucide-react"
+import { Home, ArrowLeft, Save, ArrowRight, Loader2, AlertCircle } from "lucide-react"
 import { SimplePdfGenerator } from "./simple-pdf-generator"
 import { PreviewDialog } from "./components/preview-dialog"
 import { saveSaleDeed } from "./actions"
 import { useToast } from "@/components/ui/use-toast"
 import { Toaster } from "@/components/ui/toaster"
+import { validateForm } from "./validation"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 export function SaleDeedCreationForm() {
   const router = useRouter()
@@ -25,6 +27,8 @@ export function SaleDeedCreationForm() {
   const [activeTab, setActiveTab] = useState("deed")
   const [isSaving, setIsSaving] = useState(false)
   const [savedDeedId, setSavedDeedId] = useState<string | null>(null)
+  const [validationErrors, setValidationErrors] = useState<Record<string, string[]>>({})
+  const [showValidationErrors, setShowValidationErrors] = useState(false)
   const [formData, setFormData] = useState({
     previousDoc: {},
     seller: [],
@@ -41,6 +45,15 @@ export function SaleDeedCreationForm() {
       ...prev,
       [section]: data,
     }))
+
+    // Clear validation errors for this section when data is updated
+    if (validationErrors[section]) {
+      setValidationErrors((prev) => {
+        const newErrors = { ...prev }
+        delete newErrors[section]
+        return newErrors
+      })
+    }
   }
 
   const handleTabChange = (value: string) => {
@@ -71,7 +84,29 @@ export function SaleDeedCreationForm() {
     router.push("/")
   }
 
+  const validateFormData = () => {
+    const validation = validateForm(formData)
+    setValidationErrors(validation.errors)
+    setShowValidationErrors(!validation.isValid)
+
+    if (!validation.isValid && validation.firstInvalidTab) {
+      setActiveTab(validation.firstInvalidTab)
+      toast({
+        title: "சரிபார்ப்பு பிழை",
+        description: "சில தேவையான தகவல்கள் நிரப்பப்படவில்லை. தயவுசெய்து சிவப்பு நட்சத்திரம் (*) குறிக்கப்பட்ட புலங்களை நிரப்பவும்.",
+        variant: "destructive",
+      })
+    }
+
+    return validation.isValid
+  }
+
   const handleSave = async () => {
+    // Validate form before saving
+    if (!validateFormData()) {
+      return
+    }
+
     try {
       setIsSaving(true)
 
@@ -91,6 +126,10 @@ export function SaleDeedCreationForm() {
           description: "கிரைய பத்திரம் வெற்றிகரமாக சேமிக்கப்பட்டது",
           variant: "default",
         })
+
+        // Clear validation errors after successful save
+        setValidationErrors({})
+        setShowValidationErrors(false)
       } else {
         toast({
           title: "சேமிப்பதில் பிழை",
@@ -120,6 +159,11 @@ export function SaleDeedCreationForm() {
     { id: "witness", label: "சாட்சி விவரங்கள்" },
   ]
 
+  // Check if a tab has validation errors
+  const hasTabErrors = (tabId: string) => {
+    return validationErrors[tabId] && validationErrors[tabId].length > 0
+  }
+
   return (
     <div className="container mx-auto py-6 px-4">
       <div className="flex justify-between items-center mb-6">
@@ -144,9 +188,17 @@ export function SaleDeedCreationForm() {
                 <TabsTrigger
                   key={tab.id}
                   value={tab.id}
-                  className="data-[state=active]:bg-purple-600 data-[state=active]:text-white py-2 text-sm"
+                  className={`data-[state=active]:bg-purple-600 data-[state=active]:text-white py-2 text-sm ${
+                    hasTabErrors(tab.id) ? "relative" : ""
+                  }`}
                 >
                   {tab.label}
+                  {hasTabErrors(tab.id) && (
+                    <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                    </span>
+                  )}
                 </TabsTrigger>
               ))}
             </TabsList>
@@ -197,6 +249,21 @@ export function SaleDeedCreationForm() {
               <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
           </div>
+
+          {/* Show validation errors for current tab */}
+          {showValidationErrors && hasTabErrors(activeTab) && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>சரிபார்ப்பு பிழைகள்</AlertTitle>
+              <AlertDescription>
+                <ul className="list-disc pl-5 mt-2">
+                  {validationErrors[activeTab].map((error, index) => (
+                    <li key={index}>{error}</li>
+                  ))}
+                </ul>
+              </AlertDescription>
+            </Alert>
+          )}
 
           <TabsContent value="deed" className="mt-2 bg-purple-50 p-6 rounded-lg">
             <DeedTab data={formData.deed} updateData={(data) => updateFormData("deed", data)} />
