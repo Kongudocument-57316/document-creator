@@ -3,338 +3,200 @@
 import { useState, useEffect } from "react"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
+import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { getSupabaseBrowserClient } from "@/lib/supabase"
-import { Trash2, Plus } from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Separator } from "@/components/ui/separator"
+import { Card } from "@/components/ui/card"
+import { CreditCard, Calendar, DollarSign } from "lucide-react"
 
 interface PaymentTabProps {
-  data: any[]
-  updateData: (data: any[]) => void
-}
-
-function convertNumberToWords(num: number): string {
-  const ones = [
-    "",
-    "one",
-    "two",
-    "three",
-    "four",
-    "five",
-    "six",
-    "seven",
-    "eight",
-    "nine",
-    "ten",
-    "eleven",
-    "twelve",
-    "thirteen",
-    "fourteen",
-    "fifteen",
-    "sixteen",
-    "seventeen",
-    "eighteen",
-    "nineteen",
-  ]
-  const tens = ["", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"]
-
-  if (num === 0) return "zero"
-
-  function convertLessThanThousand(n: number): string {
-    if (n < 20) return ones[n]
-    const digit = n % 10
-    if (n < 100) return tens[Math.floor(n / 10)] + (digit ? "-" + ones[digit] : "")
-    return ones[Math.floor(n / 100)] + " hundred" + (n % 100 ? " and " + convertLessThanThousand(n % 100) : "")
-  }
-
-  let words = ""
-  const chunk = 0
-  const billion = Math.floor(num / 1000000000)
-  num %= 1000000000
-
-  if (billion) {
-    words += convertLessThanThousand(billion) + " billion"
-    if (num) words += " "
-  }
-
-  const million = Math.floor(num / 1000000)
-  num %= 1000000
-
-  if (million) {
-    words += convertLessThanThousand(million) + " million"
-    if (num) words += " "
-  }
-
-  const thousand = Math.floor(num / 1000)
-  num %= 1000
-
-  if (thousand) {
-    words += convertLessThanThousand(thousand) + " thousand"
-    if (num) words += " "
-  }
-
-  if (num) {
-    words += convertLessThanThousand(num)
-  }
-
-  return words.charAt(0).toUpperCase() + words.slice(1)
+  data: any
+  updateData: (data: any) => void
 }
 
 export function PaymentTab({ data, updateData }: PaymentTabProps) {
-  const [saleAmount, setSaleAmount] = useState(data.saleAmount || "0.00")
-  const [amountInWords, setAmountInWords] = useState(data.amountInWords || "")
-  const [manualEdit, setManualEdit] = useState(data.manualEdit || false)
-  const [payments, setPayments] = useState<any[]>(
-    data.length > 0 && Array.isArray(data) ? data : [createEmptyPayment()],
-  )
+  const [formValues, setFormValues] = useState({
+    totalAmount: data.totalAmount || "",
+    advanceAmount: data.advanceAmount || "",
+    remainingAmount: data.remainingAmount || "",
+    paymentMethod: data.paymentMethod || "",
+    paymentDate: data.paymentDate || "",
+    paymentDetails: data.paymentDetails || "",
+  })
+
   const [paymentMethods, setPaymentMethods] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   const supabase = getSupabaseBrowserClient()
 
-  function createEmptyPayment() {
-    return {
-      id: Date.now(), // Temporary ID for UI purposes
-      fromId: "",
-      toId: "",
-      amount: "0.00",
-      amountInWords: "",
-      paymentMethodId: "",
-    }
-  }
-
   useEffect(() => {
-    async function fetchReferenceData() {
+    async function fetchPaymentMethods() {
       try {
         setLoading(true)
-
-        // Fetch payment methods
         const { data: methodsData } = await supabase.from("payment_methods").select("id, name").order("name")
-
         if (methodsData) setPaymentMethods(methodsData)
       } catch (error) {
-        console.error("Error fetching reference data:", error)
+        console.error("Error fetching payment methods:", error)
       } finally {
         setLoading(false)
       }
     }
 
-    fetchReferenceData()
+    fetchPaymentMethods()
   }, [supabase])
 
-  const handleSaleAmountChange = (value: string) => {
-    setSaleAmount(value)
-
-    // Convert to words in English
-    const numValue = Number.parseFloat(value) || 0
-    const wordsValue = convertNumberToWords(numValue)
-    setAmountInWords(wordsValue)
-
-    // Update the form data
-    const updatedData = [...payments]
-    updatedData.saleAmount = value
-    updatedData.amountInWords = wordsValue
-    updateData(updatedData)
+  // Calculate remaining amount when total or advance changes
+  const calculateRemainingAmount = () => {
+    if (formValues.totalAmount && formValues.advanceAmount) {
+      const total = Number.parseFloat(formValues.totalAmount)
+      const advance = Number.parseFloat(formValues.advanceAmount)
+      if (!isNaN(total) && !isNaN(advance)) {
+        return (total - advance).toString()
+      }
+    }
+    return ""
   }
 
-  const handleAmountInWordsChange = (value: string) => {
-    setAmountInWords(value)
+  const handleChange = (field: string, value: string) => {
+    const newValues = { ...formValues, [field]: value }
 
-    // Update the form data
-    const updatedData = [...payments]
-    updatedData.amountInWords = value
-    updateData(updatedData)
-  }
+    // If total or advance amount changed, recalculate remaining
+    if (field === "totalAmount" || field === "advanceAmount") {
+      const total = field === "totalAmount" ? value : formValues.totalAmount
+      const advance = field === "advanceAmount" ? value : formValues.advanceAmount
 
-  const handleManualEditChange = (value: boolean) => {
-    setManualEdit(value)
+      if (total && advance) {
+        const totalNum = Number.parseFloat(total)
+        const advanceNum = Number.parseFloat(advance)
+        if (!isNaN(totalNum) && !isNaN(advanceNum)) {
+          newValues.remainingAmount = (totalNum - advanceNum).toString()
+        }
+      }
+    }
 
-    // Update the form data
-    const updatedData = [...payments]
-    updatedData.manualEdit = value
-    updateData(updatedData)
-  }
-
-  const handleChange = (index: number, field: string, value: string) => {
-    const updatedPayments = [...payments]
-    updatedPayments[index] = { ...updatedPayments[index], [field]: value }
-    setPayments(updatedPayments)
-    updateData(updatedPayments)
-  }
-
-  const addPayment = () => {
-    const updatedPayments = [...payments, createEmptyPayment()]
-    setPayments(updatedPayments)
-    updateData(updatedPayments)
-  }
-
-  const removePayment = (index: number) => {
-    if (payments.length === 1) return // Keep at least one payment
-
-    const updatedPayments = payments.filter((_, i) => i !== index)
-    setPayments(updatedPayments)
-    updateData(updatedPayments)
+    setFormValues(newValues)
+    updateData(newValues)
   }
 
   return (
     <div className="space-y-6">
-      <h3 className="text-xl font-semibold text-purple-800">பணப்பட்டுவாடா விவரங்கள்</h3>
+      <div className="bg-white p-4 rounded-lg shadow-sm">
+        <h3 className="text-xl font-semibold text-purple-800 flex items-center">
+          <DollarSign className="h-5 w-5 mr-2 text-purple-600" />
+          பணப்பட்டுவாடா விவரங்கள்
+        </h3>
+        <Separator className="my-4 bg-purple-200" />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <Label>கிரையத் தொகை (Sale Amount)</Label>
-          <div className="flex items-center gap-2">
-            <Input
-              value={saleAmount}
-              onChange={(e) => handleSaleAmountChange(e.target.value)}
-              className="mt-1 border-purple-200 focus-visible:ring-purple-400"
-              type="number"
-              step="0.01"
-            />
-
-            <RadioGroup
-              value={manualEdit ? "manual" : "auto"}
-              onValueChange={(value) => handleManualEditChange(value === "manual")}
-              className="flex items-center gap-2 mt-1"
-            >
-              <div className="flex items-center gap-2">
-                <RadioGroupItem value="auto" id="auto-calculate" />
-                <Label htmlFor="auto-calculate" className="text-sm">
-                  தானியங்கி (Auto)
-                </Label>
-              </div>
-              <div className="flex items-center gap-2">
-                <RadioGroupItem value="manual" id="manual-edit" />
-                <Label htmlFor="manual-edit" className="text-sm">
-                  கைமுறையாக திருத்த (Manual Edit)
-                </Label>
-              </div>
-            </RadioGroup>
-          </div>
-        </div>
-
-        <div>
-          <Label>தொகை (எழுத்துகளில்) (Amount in Words)</Label>
-          <Input
-            value={amountInWords}
-            onChange={(e) => handleAmountInWordsChange(e.target.value)}
-            className="mt-1 border-purple-200 focus-visible:ring-purple-400"
-            placeholder="Zero"
-            readOnly={!manualEdit}
-          />
-          <p className="text-xs text-gray-500 mt-1">
-            கிரையத் தொகையிலிருந்து தானாகவே ஆங்கிலத்தில் மாற்றப்பட்டது (Auto-converted from Sale Amount to English)
-          </p>
-        </div>
-      </div>
-
-      {payments.map((payment, index) => (
-        <Card key={payment.id} className="border-purple-200">
-          <CardHeader className="bg-purple-50 rounded-t-lg flex flex-row items-center justify-between">
-            <CardTitle className="text-purple-700">பணப்பட்டுவாடா விவரங்கள் #{index + 1}</CardTitle>
-            {payments.length > 1 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => removePayment(index)}
-                className="text-red-500 hover:text-red-700 hover:bg-red-50"
-              >
-                <Trash2 className="h-4 w-4 mr-1" />
-                நீக்கு (Remove)
-              </Button>
-            )}
-          </CardHeader>
-          <CardContent className="pt-6">
-            <div className="space-y-4">
-              <div>
-                <Label>பணப்பட்டுவாடா வரைபடம் (Payment Mapping)</Label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-                  <div>
-                    <Label>இருந்து (From)</Label>
-                    <Select value={payment.fromId} onValueChange={(value) => handleChange(index, "fromId", value)}>
-                      <SelectTrigger className="mt-1 border-purple-200 focus-visible:ring-purple-400">
-                        <SelectValue placeholder="வாங்குபவரைத் தேர்ந்தெடுக்கவும் (Select Buyer)" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="buyer1">வாங்குபவர் 1</SelectItem>
-                        <SelectItem value="buyer2">வாங்குபவர் 2</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label>க்கு (To)</Label>
-                    <Select value={payment.toId} onValueChange={(value) => handleChange(index, "toId", value)}>
-                      <SelectTrigger className="mt-1 border-purple-200 focus-visible:ring-purple-400">
-                        <SelectValue placeholder="விற்பனையாளரைத் தேர்ந்தெடுக்கவும் (Select Seller)" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="seller1">விற்பனையாளர் 1</SelectItem>
-                        <SelectItem value="seller2">விற்பனையாளர் 2</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label>தொகை (Amount)</Label>
-                  <Input
-                    value={payment.amount}
-                    onChange={(e) => handleChange(index, "amount", e.target.value)}
-                    className="mt-1 border-purple-200 focus-visible:ring-purple-400"
-                    type="number"
-                    step="0.01"
-                    placeholder="தொகையை உள்ளிடவும்"
-                  />
-                </div>
-
-                <div>
-                  <Label>தொகை (எழுத்துகளில்) (Amount in Words)</Label>
-                  <Input
-                    value={payment.amountInWords}
-                    onChange={(e) => handleChange(index, "amountInWords", e.target.value)}
-                    className="mt-1 border-purple-200 focus-visible:ring-purple-400"
-                    placeholder="தொகையை எழுத்துகளில் உள்ளிடவும்"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <Label>பணப்பட்டுவாடா முறை (Payment Method)</Label>
-                <Select
-                  value={payment.paymentMethodId}
-                  onValueChange={(value) => handleChange(index, "paymentMethodId", value)}
-                >
-                  <SelectTrigger className="mt-1 border-purple-200 focus-visible:ring-purple-400">
-                    <SelectValue placeholder="பணப்பட்டுவாடா முறையைத் தேர்ந்தெடுக்கவும்" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {paymentMethods.map((method) => (
-                      <SelectItem key={method.id} value={method.id.toString()}>
-                        {method.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+        <Card className="p-4 border-purple-200">
+          <h4 className="text-md font-medium text-purple-700 mb-3 flex items-center">
+            <DollarSign className="h-4 w-4 mr-2 text-purple-600" />
+            தொகை விவரங்கள்
+          </h4>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <Label htmlFor="total-amount" className="text-purple-700">
+                மொத்த தொகை (Total Amount)
+              </Label>
+              <Input
+                id="total-amount"
+                placeholder="மொத்த தொகையை உள்ளிடவும்"
+                value={formValues.totalAmount}
+                onChange={(e) => handleChange("totalAmount", e.target.value)}
+                className="mt-1 border-purple-200 focus-visible:ring-purple-400"
+              />
             </div>
-          </CardContent>
-        </Card>
-      ))}
 
-      <Button
-        type="button"
-        variant="outline"
-        onClick={addPayment}
-        className="w-full border-purple-300 text-purple-700 hover:bg-purple-100"
-      >
-        <Plus className="h-4 w-4 mr-2" />
-        மற்றொரு பணப்பட்டுவாடா சேர்க்க
-      </Button>
+            <div>
+              <Label htmlFor="advance-amount" className="text-purple-700">
+                முன்பணம் (Advance Amount)
+              </Label>
+              <Input
+                id="advance-amount"
+                placeholder="முன்பணத்தை உள்ளிடவும்"
+                value={formValues.advanceAmount}
+                onChange={(e) => handleChange("advanceAmount", e.target.value)}
+                className="mt-1 border-purple-200 focus-visible:ring-purple-400"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="remaining-amount" className="text-purple-700">
+                மீதமுள்ள தொகை (Remaining Amount)
+              </Label>
+              <Input
+                id="remaining-amount"
+                placeholder="மீதமுள்ள தொகை"
+                value={formValues.remainingAmount}
+                readOnly
+                className="mt-1 border-purple-200 focus-visible:ring-purple-400 bg-gray-50"
+              />
+              <p className="text-xs text-gray-500 mt-1">தானாக கணக்கிடப்படுகிறது</p>
+            </div>
+          </div>
+        </Card>
+
+        <Separator className="my-4 bg-purple-200" />
+
+        <Card className="p-4 border-purple-200 mt-4">
+          <h4 className="text-md font-medium text-purple-700 mb-3 flex items-center">
+            <CreditCard className="h-4 w-4 mr-2 text-purple-600" />
+            பணம் செலுத்தும் முறை விவரங்கள்
+          </h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="payment-method" className="text-purple-700">
+                பணம் செலுத்தும் முறை (Payment Method)
+              </Label>
+              <Select value={formValues.paymentMethod} onValueChange={(value) => handleChange("paymentMethod", value)}>
+                <SelectTrigger className="mt-1 border-purple-200 focus-visible:ring-purple-400">
+                  <SelectValue placeholder="பணம் செலுத்தும் முறையைத் தேர்ந்தெடுக்கவும்" />
+                </SelectTrigger>
+                <SelectContent>
+                  {paymentMethods.map((method) => (
+                    <SelectItem key={method.id} value={method.id.toString()}>
+                      {method.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="payment-date" className="text-purple-700">
+                <span className="flex items-center">
+                  <Calendar className="h-4 w-4 mr-2 text-purple-600" />
+                  பணம் செலுத்திய தேதி (Payment Date)
+                </span>
+              </Label>
+              <Input
+                id="payment-date"
+                type="date"
+                value={formValues.paymentDate}
+                onChange={(e) => handleChange("paymentDate", e.target.value)}
+                className="mt-1 border-purple-200 focus-visible:ring-purple-400"
+              />
+            </div>
+          </div>
+        </Card>
+
+        <Separator className="my-4 bg-purple-200" />
+
+        <Card className="p-4 border-purple-200 mt-4">
+          <div>
+            <Label htmlFor="payment-details" className="text-purple-700">
+              கூடுதல் பணப்பட்டுவாடா விவரங்கள் (Additional Payment Details)
+            </Label>
+            <Textarea
+              id="payment-details"
+              placeholder="கூடுதல் பணப்பட்டுவாடா விவரங்களை உள்ளிடவும்"
+              value={formValues.paymentDetails}
+              onChange={(e) => handleChange("paymentDetails", e.target.value)}
+              className="mt-1 border-purple-200 focus-visible:ring-purple-400"
+            />
+          </div>
+        </Card>
+      </div>
     </div>
   )
 }
