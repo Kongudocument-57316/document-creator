@@ -1,154 +1,46 @@
-// Define validation functions for each section of the form
-
-export interface ValidationResult {
-  isValid: boolean
-  errors: string[]
-}
-
-// Validate deed tab
-export function validateDeedTab(data: any): ValidationResult {
-  const errors: string[] = []
-
-  if (!data.registrationOfficeId) {
-    errors.push("சார்பதிவாளர் அலுவலகம் தேர்ந்தெடுக்கப்படவில்லை")
-  }
-
-  if (!data.day) {
-    errors.push("தேதி உள்ளிடப்படவில்லை")
-  }
-
-  if (!data.month) {
-    errors.push("மாதம் தேர்ந்தெடுக்கப்படவில்லை")
-  }
-
-  if (!data.year) {
-    errors.push("ஆண்டு உள்ளிடப்படவில்லை")
-  }
-
-  if (!data.documentPreparerId) {
-    errors.push("ஆவணம் தயாரித்தவர் தேர்ந்தெடுக்கப்படவில்லை")
-  }
-
-  return {
-    isValid: errors.length === 0,
-    errors,
-  }
-}
-
-// Validate seller tab
-export function validateSellerTab(data: any[]): ValidationResult {
-  const errors: string[] = []
-
-  if (!data || data.length === 0) {
-    errors.push("குறைந்தது ஒரு விற்பனையாளரையாவது சேர்க்க வேண்டும்")
-  }
-
-  return {
-    isValid: errors.length === 0,
-    errors,
-  }
-}
-
-// Validate buyer tab
-export function validateBuyerTab(data: any[]): ValidationResult {
-  const errors: string[] = []
-
-  if (!data || data.length === 0) {
-    errors.push("குறைந்தது ஒரு வாங்குபவரையாவது சேர்க்க வேண்டும்")
-  }
-
-  return {
-    isValid: errors.length === 0,
-    errors,
-  }
-}
-
-// Validate property tab
-export function validatePropertyTab(data: any): ValidationResult {
-  const errors: string[] = []
-
-  if (!data.propertyType) {
-    errors.push("சொத்து வகை தேர்ந்தெடுக்கப்படவில்லை")
-  }
-
-  if (!data.propertyAddress) {
-    errors.push("சொத்து முகவரி உள்ளிடப்படவில்லை")
-  }
-
-  if (!data.propertyArea) {
-    errors.push("சொத்தின் அளவு உள்ளிடப்படவில்லை")
-  }
-
-  if (!data.propertyValue) {
-    errors.push("சொத்தின் மதிப்பு உள்ளிடப்படவில்லை")
-  }
-
-  return {
-    isValid: errors.length === 0,
-    errors,
-  }
-}
-
-// Validate payment tab
-export function validatePaymentTab(data: any): ValidationResult {
-  const errors: string[] = []
-
-  if (!data.totalAmount) {
-    errors.push("மொத்த தொகை உள்ளிடப்படவில்லை")
-  }
-
-  if (!data.paymentMethod) {
-    errors.push("பணம் செலுத்தும் முறை தேர்ந்தெடுக்கப்படவில்லை")
-  }
-
-  return {
-    isValid: errors.length === 0,
-    errors,
-  }
-}
-
-// Validate witness tab
-export function validateWitnessTab(data: any[]): ValidationResult {
-  const errors: string[] = []
-
-  if (!data || data.length === 0) {
-    errors.push("குறைந்தது ஒரு சாட்சியாவது சேர்க்க வேண்டும்")
-  }
-
-  return {
-    isValid: errors.length === 0,
-    errors,
-  }
-}
-
-// Validate the entire form
-export function validateForm(formData: any): {
-  isValid: boolean
-  errors: Record<string, string[]>
-  firstInvalidTab?: string
-} {
-  const validationResults: Record<string, ValidationResult> = {
-    deed: validateDeedTab(formData.deed || {}),
-    seller: validateSellerTab(formData.seller || []),
-    buyer: validateBuyerTab(formData.buyer || []),
-    property: validatePropertyTab(formData.property || {}),
-    payment: validatePaymentTab(formData.payment || {}),
-    witness: validateWitnessTab(formData.witness || []),
-  }
-
+export function validateForm(formData: any) {
   const errors: Record<string, string[]> = {}
   let isValid = true
-  let firstInvalidTab: string | undefined
+  let firstInvalidTab = null
 
-  // Process validation results
-  for (const [tab, result] of Object.entries(validationResults)) {
-    if (!result.isValid) {
-      errors[tab] = result.errors
-      isValid = false
-      if (!firstInvalidTab) {
-        firstInvalidTab = tab
-      }
-    }
+  // Validate Deed Tab
+  const deedErrors = validateDeedTab(formData.deed)
+  if (deedErrors.length > 0) {
+    errors.deed = deedErrors
+    isValid = false
+    firstInvalidTab = firstInvalidTab || "deed"
+  }
+
+  // Validate Seller Tab
+  const sellerErrors = validateSellerTab(formData.seller)
+  if (sellerErrors.length > 0) {
+    errors.seller = sellerErrors
+    isValid = false
+    firstInvalidTab = firstInvalidTab || "seller"
+  }
+
+  // Validate Buyer Tab
+  const buyerErrors = validateBuyerTab(formData.buyer)
+  if (buyerErrors.length > 0) {
+    errors.buyer = buyerErrors
+    isValid = false
+    firstInvalidTab = firstInvalidTab || "buyer"
+  }
+
+  // Validate Property Tab
+  const propertyErrors = validatePropertyTab(formData.property)
+  if (propertyErrors.length > 0) {
+    errors.property = propertyErrors
+    isValid = false
+    firstInvalidTab = firstInvalidTab || "property"
+  }
+
+  // Validate Payment Tab
+  const paymentErrors = validatePaymentTab(formData.payment)
+  if (paymentErrors.length > 0) {
+    errors.payment = paymentErrors
+    isValid = false
+    firstInvalidTab = firstInvalidTab || "payment"
   }
 
   return {
@@ -156,4 +48,163 @@ export function validateForm(formData: any): {
     errors,
     firstInvalidTab,
   }
+}
+
+function validateDeedTab(deedData: any = {}) {
+  const errors: string[] = []
+
+  if (!deedData.documentType) {
+    errors.push("ஆவண வகையைத் தேர்ந்தெடுக்கவும்")
+  }
+
+  if (!deedData.documentDate) {
+    errors.push("ஆவண தேதியை உள்ளிடவும்")
+  }
+
+  return errors
+}
+
+function validateSellerTab(sellerData: any[] = []) {
+  const errors: string[] = []
+
+  if (!sellerData || sellerData.length === 0) {
+    errors.push("குறைந்தது ஒரு விற்பனையாளரையாவது சேர்க்கவும்")
+  }
+
+  return errors
+}
+
+function validateBuyerTab(buyerData: any[] = []) {
+  const errors: string[] = []
+
+  if (!buyerData || buyerData.length === 0) {
+    errors.push("குறைந்தது ஒரு வாங்குபவரையாவது சேர்க்கவும்")
+  }
+
+  return errors
+}
+
+function validatePropertyTab(propertyData: any = {}) {
+  const errors: string[] = []
+
+  if (propertyData.propertySelectionType === "existing") {
+    if (!propertyData.propertyType) {
+      errors.push("சொத்து வகையைத் தேர்ந்தெடுக்கவும்")
+    }
+
+    if (!propertyData.propertyValue) {
+      errors.push("சொத்தின் மதிப்பை உள்ளிடவும்")
+    }
+
+    if (!propertyData.propertyAddress) {
+      errors.push("சொத்து முகவரியை உள்ளிடவும்")
+    }
+
+    if (!propertyData.propertyArea) {
+      errors.push("சொத்தின் அளவை உள்ளிடவும்")
+    }
+  } else if (propertyData.propertySelectionType === "site") {
+    if (!propertyData.siteDetails || propertyData.siteDetails.length === 0) {
+      errors.push("குறைந்தது ஒரு மனை விவரத்தையாவது சேர்க்கவும்")
+    }
+  } else if (propertyData.propertySelectionType === "building") {
+    if (!propertyData.buildingDetails || propertyData.buildingDetails.length === 0) {
+      errors.push("குறைந்தது ஒரு கட்டட விவரத்தையாவது சேர்க்கவும்")
+    }
+  }
+
+  return errors
+}
+
+function validatePaymentTab(paymentData: any = {}) {
+  const errors: string[] = []
+
+  // Validate total amount
+  if (!paymentData.totalAmount) {
+    errors.push("மொத்த தொகையை உள்ளிடவும்")
+  } else if (isNaN(Number.parseFloat(paymentData.totalAmount)) || Number.parseFloat(paymentData.totalAmount) <= 0) {
+    errors.push("சரியான மொத்த தொகையை உள்ளிடவும்")
+  }
+
+  // Validate amount in words
+  if (!paymentData.amountInWords || paymentData.amountInWords === "Zero") {
+    errors.push("தொகையை எழுத்துகளில் உள்ளிடவும்")
+  }
+
+  // Validate individual payment entries
+  if (!paymentData.payments || paymentData.payments.length === 0) {
+    errors.push("குறைந்தது ஒரு பணப்பட்டுவாடா விவரத்தையாவது சேர்க்கவும்")
+  } else {
+    // Calculate total of individual payments
+    let totalPaymentAmount = 0
+
+    // Check each payment entry
+    for (let i = 0; i < paymentData.payments.length; i++) {
+      const payment = paymentData.payments[i]
+      const paymentErrors: string[] = []
+
+      // Required fields for all payment methods
+      if (!payment.fromBuyer) {
+        paymentErrors.push(`பணப்பட்டுவாடா #${i + 1}: வாங்குபவரைத் தேர்ந்தெடுக்கவும்`)
+      }
+
+      if (!payment.toSeller) {
+        paymentErrors.push(`பணப்பட்டுவாடா #${i + 1}: விற்பவரைத் தேர்ந்தெடுக்கவும்`)
+      }
+
+      if (!payment.amount) {
+        paymentErrors.push(`பணப்பட்டுவாடா #${i + 1}: தொகையை உள்ளிடவும்`)
+      } else if (isNaN(Number.parseFloat(payment.amount)) || Number.parseFloat(payment.amount) <= 0) {
+        paymentErrors.push(`பணப்பட்டுவாடா #${i + 1}: சரியான தொகையை உள்ளிடவும்`)
+      } else {
+        totalPaymentAmount += Number.parseFloat(payment.amount)
+      }
+
+      if (!payment.paymentMethod) {
+        paymentErrors.push(`பணப்பட்டுவாடா #${i + 1}: பணப்பட்டுவாடா முறையைத் தேர்ந்தெடுக்கவும்`)
+      } else {
+        // Validate fields specific to payment methods
+        if (payment.paymentMethod === "2") {
+          // Cheque
+          if (!payment.transactionNo) {
+            paymentErrors.push(`பணப்பட்டுவாடா #${i + 1}: காசோலை எண்ணை உள்ளிடவும்`)
+          }
+          if (!payment.bankName) {
+            paymentErrors.push(`பணப்பட்டுவாடா #${i + 1}: வங்கி பெயரை உள்ளிடவும்`)
+          }
+        } else if (["3", "4", "5", "6", "7"].includes(payment.paymentMethod)) {
+          // DD, NEFT, RTGS, IMPS, UPI
+          if (!payment.transactionNo) {
+            const fieldName = payment.paymentMethod === "3" ? "வரைவோலை எண்ணை" : "பரிவர்த்தனை எண்ணை"
+            paymentErrors.push(`பணப்பட்டுவாடா #${i + 1}: ${fieldName} உள்ளிடவும்`)
+          }
+          if (!payment.bankName) {
+            paymentErrors.push(`பணப்பட்டுவாடா #${i + 1}: செலுத்துபவர் வங்கி பெயரை உள்ளிடவும்`)
+          }
+          if (!payment.recipientBankName) {
+            paymentErrors.push(`பணப்பட்டுவாடா #${i + 1}: பெறுநர் வங்கி பெயரை உள்ளிடவும்`)
+          }
+        }
+
+        // Transaction date is required for all payment methods
+        if (!payment.transactionDate) {
+          paymentErrors.push(`பணப்பட்டுவாடா #${i + 1}: பரிவர்த்தனை தேதியை உள்ளிடவும்`)
+        }
+      }
+
+      // Add all payment errors to the main errors array
+      errors.push(...paymentErrors)
+    }
+
+    // Validate that sum of payments matches total amount
+    if (totalPaymentAmount > 0 && !isNaN(Number.parseFloat(paymentData.totalAmount))) {
+      const totalAmount = Number.parseFloat(paymentData.totalAmount)
+      if (Math.abs(totalPaymentAmount - totalAmount) > 0.01) {
+        // Allow small rounding differences
+        errors.push(`பணப்பட்டுவாடா தொகைகளின் கூட்டுத்தொகை (${totalPaymentAmount}) மொத்த தொகையுடன் (${totalAmount}) பொருந்தவில்லை`)
+      }
+    }
+  }
+
+  return errors
 }

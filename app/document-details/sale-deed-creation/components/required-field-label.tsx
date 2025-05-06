@@ -1,17 +1,15 @@
+import type React from "react"
 import { Label } from "@/components/ui/label"
-import type { ReactNode } from "react"
+import { cn } from "@/lib/utils"
 
-interface RequiredFieldLabelProps {
-  htmlFor?: string
-  children: ReactNode
-  className?: string
+interface RequiredFieldLabelProps extends React.ComponentPropsWithoutRef<typeof Label> {
+  children: React.ReactNode
 }
 
-export function RequiredFieldLabel({ htmlFor, children, className = "" }: RequiredFieldLabelProps) {
+export function RequiredFieldLabel({ children, className, ...props }: RequiredFieldLabelProps) {
   return (
-    <Label htmlFor={htmlFor} className={`flex items-center ${className}`}>
-      {children}
-      <span className="text-red-500 ml-1">*</span>
+    <Label className={cn(className)} {...props}>
+      {children} <span className="text-red-500">*</span>
     </Label>
   )
 }
