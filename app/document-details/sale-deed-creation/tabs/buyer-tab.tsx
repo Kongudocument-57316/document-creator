@@ -15,8 +15,6 @@ interface BuyerTabProps {
 
 export function BuyerTab({ data, updateData }: BuyerTabProps) {
   const [buyers, setBuyers] = useState<any[]>(Array.isArray(data) ? data : [])
-  const [isSearchOpen, setIsSearchOpen] = useState(false)
-  const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [selectedBuyer, setSelectedBuyer] = useState<any>(null)
   const [isEditing, setIsEditing] = useState(false)
 
@@ -24,13 +22,11 @@ export function BuyerTab({ data, updateData }: BuyerTabProps) {
     const newBuyers = [...buyers, { ...buyer, id: Date.now() }]
     setBuyers(newBuyers)
     updateData(newBuyers)
-    setIsSearchOpen(false)
   }
 
   const handleEditBuyer = (buyer: any) => {
     setSelectedBuyer(buyer)
     setIsEditing(true)
-    setIsDetailOpen(true)
   }
 
   const handleDeleteBuyer = (buyerId: number) => {
@@ -43,14 +39,12 @@ export function BuyerTab({ data, updateData }: BuyerTabProps) {
     const newBuyers = buyers.map((buyer) => (buyer.id === updatedBuyer.id ? { ...buyer, ...updatedBuyer } : buyer))
     setBuyers(newBuyers)
     updateData(newBuyers)
-    setIsDetailOpen(false)
     setIsEditing(false)
   }
 
   const handleViewBuyer = (buyer: any) => {
     setSelectedBuyer(buyer)
     setIsEditing(false)
-    setIsDetailOpen(true)
   }
 
   return (
@@ -63,10 +57,7 @@ export function BuyerTab({ data, updateData }: BuyerTabProps) {
         <Separator className="my-4 bg-purple-200" />
 
         <div className="flex justify-end mb-4">
-          <Button onClick={() => setIsSearchOpen(true)} className="bg-purple-600 hover:bg-purple-700">
-            <UserPlus className="h-4 w-4 mr-2" />
-            வாங்குபவரைச் சேர்க்க
-          </Button>
+          <UserSearchDialog onSelectUser={handleAddBuyer} buttonLabel="வாங்குபவரைச் சேர்க்க" dialogTitle="வாங்குபவரைத் தேடு" />
         </div>
 
         {buyers.length === 0 ? (
@@ -85,18 +76,13 @@ export function BuyerTab({ data, updateData }: BuyerTabProps) {
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
                       <h4 className="font-medium text-purple-800">{buyer.name}</h4>
-                      <p className="text-sm text-gray-600">{buyer.address1}</p>
-                      {buyer.phoneNo && <p className="text-sm text-gray-600">தொலைபேசி: {buyer.phoneNo}</p>}
+                      <p className="text-sm text-gray-600">{buyer.address_line1 || buyer.address1}</p>
+                      {(buyer.phone || buyer.phoneNo) && (
+                        <p className="text-sm text-gray-600">தொலைபேசி: {buyer.phone || buyer.phoneNo}</p>
+                      )}
                     </div>
                     <div className="flex space-x-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleViewBuyer(buyer)}
-                        className="border-purple-200 hover:bg-purple-50"
-                      >
-                        <User className="h-4 w-4 text-purple-600" />
-                      </Button>
+                      <UserDetailDialog user={buyer} buttonLabel="விவரங்கள்" dialogTitle="வாங்குபவர் விவரங்கள்" />
                       <Button
                         variant="outline"
                         size="sm"
@@ -121,22 +107,6 @@ export function BuyerTab({ data, updateData }: BuyerTabProps) {
           </div>
         )}
       </div>
-
-      <UserSearchDialog
-        isOpen={isSearchOpen}
-        onClose={() => setIsSearchOpen(false)}
-        onSelect={handleAddBuyer}
-        title="வாங்குபவரைத் தேடு"
-      />
-
-      <UserDetailDialog
-        isOpen={isDetailOpen}
-        onClose={() => setIsDetailOpen(false)}
-        user={selectedBuyer}
-        isEditing={isEditing}
-        onUpdate={handleUpdateBuyer}
-        title={isEditing ? "வாங்குபவர் விவரங்களைத் திருத்து" : "வாங்குபவர் விவரங்கள்"}
-      />
     </div>
   )
 }

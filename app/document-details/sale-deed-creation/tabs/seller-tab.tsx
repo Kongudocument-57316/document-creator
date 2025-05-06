@@ -15,8 +15,6 @@ interface SellerTabProps {
 
 export function SellerTab({ data, updateData }: SellerTabProps) {
   const [sellers, setSellers] = useState<any[]>(Array.isArray(data) ? data : [])
-  const [isSearchOpen, setIsSearchOpen] = useState(false)
-  const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [selectedSeller, setSelectedSeller] = useState<any>(null)
   const [isEditing, setIsEditing] = useState(false)
 
@@ -24,13 +22,11 @@ export function SellerTab({ data, updateData }: SellerTabProps) {
     const newSellers = [...sellers, { ...seller, id: Date.now() }]
     setSellers(newSellers)
     updateData(newSellers)
-    setIsSearchOpen(false)
   }
 
   const handleEditSeller = (seller: any) => {
     setSelectedSeller(seller)
     setIsEditing(true)
-    setIsDetailOpen(true)
   }
 
   const handleDeleteSeller = (sellerId: number) => {
@@ -45,14 +41,12 @@ export function SellerTab({ data, updateData }: SellerTabProps) {
     )
     setSellers(newSellers)
     updateData(newSellers)
-    setIsDetailOpen(false)
     setIsEditing(false)
   }
 
   const handleViewSeller = (seller: any) => {
     setSelectedSeller(seller)
     setIsEditing(false)
-    setIsDetailOpen(true)
   }
 
   return (
@@ -65,10 +59,11 @@ export function SellerTab({ data, updateData }: SellerTabProps) {
         <Separator className="my-4 bg-purple-200" />
 
         <div className="flex justify-end mb-4">
-          <Button onClick={() => setIsSearchOpen(true)} className="bg-purple-600 hover:bg-purple-700">
-            <UserPlus className="h-4 w-4 mr-2" />
-            விற்பனையாளரைச் சேர்க்க
-          </Button>
+          <UserSearchDialog
+            onSelectUser={handleAddSeller}
+            buttonLabel="விற்பனையாளரைச் சேர்க்க"
+            dialogTitle="விற்பனையாளரைத் தேடு"
+          />
         </div>
 
         {sellers.length === 0 ? (
@@ -89,18 +84,13 @@ export function SellerTab({ data, updateData }: SellerTabProps) {
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
                       <h4 className="font-medium text-purple-800">{seller.name}</h4>
-                      <p className="text-sm text-gray-600">{seller.address1}</p>
-                      {seller.phoneNo && <p className="text-sm text-gray-600">தொலைபேசி: {seller.phoneNo}</p>}
+                      <p className="text-sm text-gray-600">{seller.address_line1 || seller.address1}</p>
+                      {(seller.phone || seller.phoneNo) && (
+                        <p className="text-sm text-gray-600">தொலைபேசி: {seller.phone || seller.phoneNo}</p>
+                      )}
                     </div>
                     <div className="flex space-x-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleViewSeller(seller)}
-                        className="border-purple-200 hover:bg-purple-50"
-                      >
-                        <User className="h-4 w-4 text-purple-600" />
-                      </Button>
+                      <UserDetailDialog user={seller} buttonLabel="விவரங்கள்" dialogTitle="விற்பனையாளர் விவரங்கள்" />
                       <Button
                         variant="outline"
                         size="sm"
@@ -125,22 +115,6 @@ export function SellerTab({ data, updateData }: SellerTabProps) {
           </div>
         )}
       </div>
-
-      <UserSearchDialog
-        isOpen={isSearchOpen}
-        onClose={() => setIsSearchOpen(false)}
-        onSelect={handleAddSeller}
-        title="விற்பனையாளரைத் தேடு"
-      />
-
-      <UserDetailDialog
-        isOpen={isDetailOpen}
-        onClose={() => setIsDetailOpen(false)}
-        user={selectedSeller}
-        isEditing={isEditing}
-        onUpdate={handleUpdateSeller}
-        title={isEditing ? "விற்பனையாளர் விவரங்களைத் திருத்து" : "விற்பனையாளர் விவரங்கள்"}
-      />
     </div>
   )
 }

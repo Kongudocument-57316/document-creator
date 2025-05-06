@@ -15,8 +15,6 @@ interface WitnessTabProps {
 
 export function WitnessTab({ data, updateData }: WitnessTabProps) {
   const [witnesses, setWitnesses] = useState<any[]>(Array.isArray(data) ? data : [])
-  const [isSearchOpen, setIsSearchOpen] = useState(false)
-  const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [selectedWitness, setSelectedWitness] = useState<any>(null)
   const [isEditing, setIsEditing] = useState(false)
 
@@ -24,13 +22,11 @@ export function WitnessTab({ data, updateData }: WitnessTabProps) {
     const newWitnesses = [...witnesses, { ...witness, id: Date.now() }]
     setWitnesses(newWitnesses)
     updateData(newWitnesses)
-    setIsSearchOpen(false)
   }
 
   const handleEditWitness = (witness: any) => {
     setSelectedWitness(witness)
     setIsEditing(true)
-    setIsDetailOpen(true)
   }
 
   const handleDeleteWitness = (witnessId: number) => {
@@ -45,14 +41,12 @@ export function WitnessTab({ data, updateData }: WitnessTabProps) {
     )
     setWitnesses(newWitnesses)
     updateData(newWitnesses)
-    setIsDetailOpen(false)
     setIsEditing(false)
   }
 
   const handleViewWitness = (witness: any) => {
     setSelectedWitness(witness)
     setIsEditing(false)
-    setIsDetailOpen(true)
   }
 
   return (
@@ -65,10 +59,7 @@ export function WitnessTab({ data, updateData }: WitnessTabProps) {
         <Separator className="my-4 bg-purple-200" />
 
         <div className="flex justify-end mb-4">
-          <Button onClick={() => setIsSearchOpen(true)} className="bg-purple-600 hover:bg-purple-700">
-            <UserPlus className="h-4 w-4 mr-2" />
-            சாட்சியைச் சேர்க்க
-          </Button>
+          <UserSearchDialog onSelectUser={handleAddWitness} buttonLabel="சாட்சியைச் சேர்க்க" dialogTitle="சாட்சியைத் தேடு" />
         </div>
 
         {witnesses.length === 0 ? (
@@ -87,18 +78,13 @@ export function WitnessTab({ data, updateData }: WitnessTabProps) {
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
                       <h4 className="font-medium text-purple-800">{witness.name}</h4>
-                      <p className="text-sm text-gray-600">{witness.address1}</p>
-                      {witness.phoneNo && <p className="text-sm text-gray-600">தொலைபேசி: {witness.phoneNo}</p>}
+                      <p className="text-sm text-gray-600">{witness.address_line1 || witness.address1}</p>
+                      {(witness.phone || witness.phoneNo) && (
+                        <p className="text-sm text-gray-600">தொலைபேசி: {witness.phone || witness.phoneNo}</p>
+                      )}
                     </div>
                     <div className="flex space-x-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleViewWitness(witness)}
-                        className="border-purple-200 hover:bg-purple-50"
-                      >
-                        <User className="h-4 w-4 text-purple-600" />
-                      </Button>
+                      <UserDetailDialog user={witness} buttonLabel="விவரங்கள்" dialogTitle="சாட்சி விவரங்கள்" />
                       <Button
                         variant="outline"
                         size="sm"
@@ -123,22 +109,6 @@ export function WitnessTab({ data, updateData }: WitnessTabProps) {
           </div>
         )}
       </div>
-
-      <UserSearchDialog
-        isOpen={isSearchOpen}
-        onClose={() => setIsSearchOpen(false)}
-        onSelect={handleAddWitness}
-        title="சாட்சியைத் தேடு"
-      />
-
-      <UserDetailDialog
-        isOpen={isDetailOpen}
-        onClose={() => setIsDetailOpen(false)}
-        user={selectedWitness}
-        isEditing={isEditing}
-        onUpdate={handleUpdateWitness}
-        title={isEditing ? "சாட்சி விவரங்களைத் திருத்து" : "சாட்சி விவரங்கள்"}
-      />
     </div>
   )
 }
