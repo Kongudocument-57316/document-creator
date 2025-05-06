@@ -12,13 +12,19 @@ import { WitnessTab } from "./tabs/witness-tab"
 import { PaymentTab } from "./tabs/payment-tab"
 import { DeedTab } from "./tabs/deed-tab"
 import { useRouter } from "next/navigation"
-import { Home, ArrowLeft, Save } from "lucide-react"
+import { Home, ArrowLeft, Save, ArrowRight, Loader2 } from "lucide-react"
 import { SimplePdfGenerator } from "./simple-pdf-generator"
 import { PreviewDialog } from "./components/preview-dialog"
+import { saveSaleDeed } from "./actions"
+import { useToast } from "@/components/ui/use-toast"
+import { Toaster } from "@/components/ui/toaster"
 
 export function SaleDeedCreationForm() {
   const router = useRouter()
+  const { toast } = useToast()
   const [activeTab, setActiveTab] = useState("deed")
+  const [isSaving, setIsSaving] = useState(false)
+  const [savedDeedId, setSavedDeedId] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     previousDoc: {},
     seller: [],
@@ -27,6 +33,7 @@ export function SaleDeedCreationForm() {
     witness: [],
     payment: {},
     deed: {},
+    id: null,
   })
 
   const updateFormData = (section: string, data: any) => {
@@ -64,6 +71,55 @@ export function SaleDeedCreationForm() {
     router.push("/")
   }
 
+  const handleSave = async () => {
+    try {
+      setIsSaving(true)
+
+      // Include the saved ID if we have one
+      const dataToSave = savedDeedId ? { ...formData, id: savedDeedId } : formData
+
+      const result = await saveSaleDeed(dataToSave)
+
+      if (result.success) {
+        // Store the deed ID for future saves
+        if (result.id) {
+          setSavedDeedId(result.id)
+        }
+
+        toast({
+          title: "சேமிக்கப்பட்டது",
+          description: "கிரைய பத்திரம் வெற்றிகரமாக சேமிக்கப்பட்டது",
+          variant: "default",
+        })
+      } else {
+        toast({
+          title: "சேமிப்பதில் பிழை",
+          description: result.error || "கிரைய பத்திரத்தை சேமிப்பதில் பிழை ஏற்பட்டது",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error("Error saving deed:", error)
+      toast({
+        title: "சேமிப்பதில் பிழை",
+        description: "கிரைய பத்திரத்தை சேமிப்பதில் எதிர்பாராத பிழை ஏற்பட்டது",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const tabs = [
+    { id: "deed", label: "ஆவண அடிப்படை விவரங்கள்" },
+    { id: "buyer", label: "வாங்குபவர் விவரங்கள்" },
+    { id: "seller", label: "விற்பனையாளர் விவரங்கள்" },
+    { id: "previous-doc", label: "முந்தைய ஆவண விவரங்கள்" },
+    { id: "property", label: "சொத்து விவரங்கள்" },
+    { id: "payment", label: "பணப்பட்டுவாடா விவரங்கள்" },
+    { id: "witness", label: "சாட்சி விவரங்கள்" },
+  ]
+
   return (
     <div className="container mx-auto py-6 px-4">
       <div className="flex justify-between items-center mb-6">
@@ -84,76 +140,89 @@ export function SaleDeedCreationForm() {
         <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
           <div className="overflow-x-auto pb-2">
             <TabsList className="w-full grid-cols-7 mb-6 bg-purple-50 p-1">
-              <TabsTrigger
-                value="deed"
-                className="data-[state=active]:bg-purple-600 data-[state=active]:text-white py-2 text-sm"
-              >
-                ஆவண அடிப்படை விவரங்கள்
-              </TabsTrigger>
-              <TabsTrigger
-                value="buyer"
-                className="data-[state=active]:bg-purple-600 data-[state=active]:text-white py-2 text-sm"
-              >
-                வாங்குபவர் விவரங்கள்
-              </TabsTrigger>
-              <TabsTrigger
-                value="seller"
-                className="data-[state=active]:bg-purple-600 data-[state=active]:text-white py-2 text-sm"
-              >
-                விற்பனையாளர் விவரங்கள்
-              </TabsTrigger>
-              <TabsTrigger
-                value="previous-doc"
-                className="data-[state=active]:bg-purple-600 data-[state=active]:text-white py-2 text-sm"
-              >
-                முந்தைய ஆவண விவரங்கள்
-              </TabsTrigger>
-              <TabsTrigger
-                value="property"
-                className="data-[state=active]:bg-purple-600 data-[state=active]:text-white py-2 text-sm"
-              >
-                சொத்து விவரங்கள்
-              </TabsTrigger>
-              <TabsTrigger
-                value="payment"
-                className="data-[state=active]:bg-purple-600 data-[state=active]:text-white py-2 text-sm"
-              >
-                பணப்பட்டுவாடா விவரங்கள்
-              </TabsTrigger>
-              <TabsTrigger
-                value="witness"
-                className="data-[state=active]:bg-purple-600 data-[state=active]:text-white py-2 text-sm"
-              >
-                சாட்சி விவரங்கள்
-              </TabsTrigger>
+              {tabs.map((tab) => (
+                <TabsTrigger
+                  key={tab.id}
+                  value={tab.id}
+                  className="data-[state=active]:bg-purple-600 data-[state=active]:text-white py-2 text-sm"
+                >
+                  {tab.label}
+                </TabsTrigger>
+              ))}
             </TabsList>
           </div>
 
-          <TabsContent value="deed" className="mt-6 bg-purple-50 p-6 rounded-lg">
+          {/* Navigation buttons above tab content */}
+          <div className="flex justify-between mb-4">
+            <Button
+              variant="outline"
+              onClick={goToPreviousTab}
+              disabled={activeTab === "deed"}
+              className="border-purple-300 hover:bg-purple-50 text-purple-700"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              முந்தைய
+            </Button>
+
+            <div className="flex space-x-2">
+              <Button
+                variant="outline"
+                onClick={handleSave}
+                disabled={isSaving}
+                className="border-purple-300 hover:bg-purple-50 text-purple-700"
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    சேமிக்கிறது...
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4 mr-2" />
+                    சேமி
+                  </>
+                )}
+              </Button>
+
+              <PreviewDialog formData={formData} />
+              <SimplePdfGenerator formData={formData} title="கிரைய ஆவணம்" />
+            </div>
+
+            <Button
+              onClick={goToNextTab}
+              disabled={activeTab === "previous-doc"}
+              className="bg-purple-600 hover:bg-purple-700"
+            >
+              அடுத்து
+              <ArrowRight className="h-4 w-4 ml-2" />
+            </Button>
+          </div>
+
+          <TabsContent value="deed" className="mt-2 bg-purple-50 p-6 rounded-lg">
             <DeedTab data={formData.deed} updateData={(data) => updateFormData("deed", data)} />
           </TabsContent>
 
-          <TabsContent value="seller" className="mt-6 bg-purple-50 p-6 rounded-lg">
+          <TabsContent value="seller" className="mt-2 bg-purple-50 p-6 rounded-lg">
             <SellerTab data={formData.seller} updateData={(data) => updateFormData("seller", data)} />
           </TabsContent>
 
-          <TabsContent value="buyer" className="mt-6 bg-purple-50 p-6 rounded-lg">
+          <TabsContent value="buyer" className="mt-2 bg-purple-50 p-6 rounded-lg">
             <BuyerTab data={formData.buyer} updateData={(data) => updateFormData("buyer", data)} />
           </TabsContent>
 
-          <TabsContent value="property" className="mt-6 bg-purple-50 p-6 rounded-lg">
+          <TabsContent value="property" className="mt-2 bg-purple-50 p-6 rounded-lg">
             <PropertyTab data={formData.property} updateData={(data) => updateFormData("property", data)} />
           </TabsContent>
 
-          <TabsContent value="witness" className="mt-6 bg-purple-50 p-6 rounded-lg">
+          <TabsContent value="witness" className="mt-2 bg-purple-50 p-6 rounded-lg">
             <WitnessTab data={formData.witness} updateData={(data) => updateFormData("witness", data)} />
           </TabsContent>
 
-          <TabsContent value="payment" className="mt-6 bg-purple-50 p-6 rounded-lg">
+          <TabsContent value="payment" className="mt-2 bg-purple-50 p-6 rounded-lg">
             <PaymentTab data={formData.payment} updateData={(data) => updateFormData("payment", data)} />
           </TabsContent>
 
-          <TabsContent value="previous-doc" className="mt-6 bg-purple-50 p-6 rounded-lg">
+          <TabsContent value="previous-doc" className="mt-2 bg-purple-50 p-6 rounded-lg">
             <PreviousDocTab
               data={formData.previousDoc}
               updateData={(data) => updateFormData("previousDoc", data)}
@@ -161,33 +230,10 @@ export function SaleDeedCreationForm() {
             />
           </TabsContent>
         </Tabs>
-
-        <div className="flex justify-between mt-8">
-          <Button
-            variant="outline"
-            onClick={goToPreviousTab}
-            disabled={activeTab === "deed"}
-            className="border-purple-300 hover:bg-purple-50 text-purple-700"
-          >
-            முந்தைய
-          </Button>
-          <div className="flex flex-wrap gap-2 justify-end">
-            <Button variant="outline" className="border-purple-300 hover:bg-purple-50 text-purple-700">
-              <Save className="h-4 w-4 mr-2" />
-              சேமி
-            </Button>
-            <PreviewDialog formData={formData} />
-            <SimplePdfGenerator formData={formData} title="கிரைய ஆவணம்" />
-            <Button
-              onClick={goToNextTab}
-              disabled={activeTab === "previous-doc"}
-              className="bg-purple-600 hover:bg-purple-700"
-            >
-              அடுத்து
-            </Button>
-          </div>
-        </div>
       </Card>
+
+      {/* Toast notifications */}
+      <Toaster />
     </div>
   )
 }
