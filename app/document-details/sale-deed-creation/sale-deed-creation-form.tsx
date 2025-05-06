@@ -136,7 +136,11 @@ export function SaleDeedCreationForm() {
           <SellerTab data={formData.seller} updateData={(data) => updateFormData("seller", data)} />
         )}
         {activeTab === "previousDoc" && (
-          <PreviousDocTab data={formData.previousDoc} updateData={(data) => updateFormData("previousDoc", data)} />
+          <PreviousDocTab
+            data={formData.previousDoc}
+            updateData={(data) => updateFormData("previousDoc", data)}
+            sellers={formData.seller} // Pass the sellers data to the PreviousDocTab
+          />
         )}
         {activeTab === "property" && (
           <PropertyTab data={formData.property} updateData={(data) => updateFormData("property", data)} />
