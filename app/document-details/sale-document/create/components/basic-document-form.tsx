@@ -151,21 +151,39 @@ export default function BasicDocumentForm({ data, updateData }) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label
-            htmlFor="documentNumber"
-            className={errors.documentNumber && touched.documentNumber ? "text-red-500" : ""}
+            htmlFor="registrationDate"
+            className={errors.registrationDate && touched.registrationDate ? "text-red-500" : ""}
           >
-            ஆவண எண் <span className="text-red-500">*</span>
+            பதிவு தேதி <span className="text-red-500">*</span>
           </Label>
           <Input
-            id="documentNumber"
-            value={formState.documentNumber || ""}
-            onChange={(e) => handleChange("documentNumber", e.target.value)}
-            onBlur={() => handleBlur("documentNumber")}
-            className={errors.documentNumber && touched.documentNumber ? "border-red-500" : ""}
+            id="registrationDate"
+            type="text"
+            placeholder="DD/MM/YYYY"
+            value={formState.registrationDate ? new Date(formState.registrationDate).toLocaleDateString("en-GB") : ""}
+            onChange={(e) => {
+              const dateValue = e.target.value
+              // Try to parse the date in DD/MM/YYYY format
+              if (dateValue) {
+                const [day, month, year] = dateValue.split("/")
+                if (day && month && year) {
+                  const parsedDate = new Date(`${year}-${month}-${day}`)
+                  if (!isNaN(parsedDate.getTime())) {
+                    handleChange("registrationDate", parsedDate.toISOString().split("T")[0])
+                    return
+                  }
+                }
+              }
+              handleChange("registrationDate", dateValue)
+            }}
+            onBlur={() => handleBlur("registrationDate")}
+            className={errors.registrationDate && touched.registrationDate ? "border-red-500" : ""}
             required
           />
-          {touched.documentNumber && <FormError message={errors.documentNumber} />}
+          {touched.registrationDate && <FormError message={errors.registrationDate} />}
         </div>
+
+        <div className="space-y-2"></div>
 
         <div className="space-y-2">
           <Label htmlFor="bookNumberId" className={errors.bookNumberId && touched.bookNumberId ? "text-red-500" : ""}>
@@ -214,26 +232,6 @@ export default function BasicDocumentForm({ data, updateData }) {
             </SelectContent>
           </Select>
           {touched.documentTypeId && <FormError message={errors.documentTypeId} />}
-        </div>
-
-        <div className="space-y-2">
-          <Label
-            htmlFor="registrationDate"
-            className={errors.registrationDate && touched.registrationDate ? "text-red-500" : ""}
-          >
-            பதிவு தேதி <span className="text-red-500">*</span>
-          </Label>
-          <Input
-            id="registrationDate"
-            type="date"
-            value={formState.registrationDate || ""}
-            onChange={(e) => handleChange("registrationDate", e.target.value)}
-            onBlur={() => handleBlur("registrationDate")}
-            className={errors.registrationDate && touched.registrationDate ? "border-red-500" : ""}
-            max={new Date().toISOString().split("T")[0]} // இன்றைய தேதி வரை மட்டும்
-            required
-          />
-          {touched.registrationDate && <FormError message={errors.registrationDate} />}
         </div>
 
         <div className="space-y-2">
