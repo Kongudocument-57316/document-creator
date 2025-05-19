@@ -8,6 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { getSupabaseBrowserClient } from "@/lib/supabase"
 import { toast } from "sonner"
+import { FormError } from "@/components/ui/form-error"
+import { isRequired, isValidDate, isNotFutureDate, errorMessages } from "@/lib/validation"
 
 export default function BasicDocumentForm({ data, updateData }) {
   const [bookNumbers, setBookNumbers] = useState([])
@@ -18,6 +20,8 @@ export default function BasicDocumentForm({ data, updateData }) {
   const [loading, setLoading] = useState(true)
 
   const [formState, setFormState] = useState(data)
+  const [errors, setErrors] = useState({})
+  const [touched, setTouched] = useState({})
 
   useEffect(() => {
     const fetchReferenceData = async () => {
@@ -55,14 +59,87 @@ export default function BasicDocumentForm({ data, updateData }) {
     fetchReferenceData()
   }, [])
 
+  const validateField = (field, value) => {
+    switch (field) {
+      case "documentNumber":
+        return isRequired(value) ? "" : errorMessages.required
+      case "bookNumberId":
+        return isRequired(value) ? "" : errorMessages.required
+      case "documentTypeId":
+        return isRequired(value) ? "" : errorMessages.required
+      case "registrationDate":
+        if (!isRequired(value)) return errorMessages.required
+        if (!isValidDate(value)) return errorMessages.date
+        if (!isNotFutureDate(value)) return errorMessages.futureDate
+        return ""
+      case "submissionDate":
+        if (!isValidDate(value)) return errorMessages.date
+        if (!isNotFutureDate(value)) return errorMessages.futureDate
+        return ""
+      case "submissionTypeId":
+        return isRequired(value) ? "" : errorMessages.required
+      case "officeId":
+        return isRequired(value) ? "" : errorMessages.required
+      case "subRegistrarOfficeId":
+        return isRequired(value) ? "" : errorMessages.required
+      case "documentStatus":
+        return isRequired(value) ? "" : errorMessages.required
+      default:
+        return ""
+    }
+  }
+
+  const validateForm = () => {
+    const newErrors = {}
+    let isValid = true
+
+    // Validate all fields
+    Object.keys(formState).forEach((field) => {
+      const error = validateField(field, formState[field])
+      if (error) {
+        newErrors[field] = error
+        isValid = false
+      }
+    })
+
+    setErrors(newErrors)
+    return isValid
+  }
+
   const handleChange = (field, value) => {
     const updatedState = { ...formState, [field]: value }
     setFormState(updatedState)
+
+    // Mark field as touched
+    setTouched({ ...touched, [field]: true })
+
+    // Validate the field
+    const error = validateField(field, value)
+    setErrors({ ...errors, [field]: error })
+  }
+
+  const handleBlur = (field) => {
+    setTouched({ ...touched, [field]: true })
+    const error = validateField(field, formState[field])
+    setErrors({ ...errors, [field]: error })
   }
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    updateData(formState)
+
+    // Mark all fields as touched
+    const allTouched = {}
+    Object.keys(formState).forEach((field) => {
+      allTouched[field] = true
+    })
+    setTouched(allTouched)
+
+    // Validate all fields
+    if (validateForm()) {
+      updateData(formState)
+    } else {
+      toast.error("படிவத்தில் பிழைகள் உள்ளன. சரிபார்த்து மீண்டும் முயற்சிக்கவும்.")
+    }
   }
 
   if (loading) {
@@ -70,22 +147,36 @@ export default function BasicDocumentForm({ data, updateData }) {
   }
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form onSubmit={handleSubmit} noValidate>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="documentNumber">ஆவண எண்</Label>
+          <Label
+            htmlFor="documentNumber"
+            className={errors.documentNumber && touched.documentNumber ? "text-red-500" : ""}
+          >
+            ஆவண எண் <span className="text-red-500">*</span>
+          </Label>
           <Input
             id="documentNumber"
-            value={formState.documentNumber}
+            value={formState.documentNumber || ""}
             onChange={(e) => handleChange("documentNumber", e.target.value)}
+            onBlur={() => handleBlur("documentNumber")}
+            className={errors.documentNumber && touched.documentNumber ? "border-red-500" : ""}
             required
           />
+          {touched.documentNumber && <FormError message={errors.documentNumber} />}
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="bookNumberId">புத்தக எண்</Label>
-          <Select value={formState.bookNumberId} onValueChange={(value) => handleChange("bookNumberId", value)}>
-            <SelectTrigger>
+          <Label htmlFor="bookNumberId" className={errors.bookNumberId && touched.bookNumberId ? "text-red-500" : ""}>
+            புத்தக எண் <span className="text-red-500">*</span>
+          </Label>
+          <Select
+            value={formState.bookNumberId || ""}
+            onValueChange={(value) => handleChange("bookNumberId", value)}
+            onOpenChange={() => handleBlur("bookNumberId")}
+          >
+            <SelectTrigger className={errors.bookNumberId && touched.bookNumberId ? "border-red-500" : ""}>
               <SelectValue placeholder="புத்தக எண் தேர்ந்தெடுக்கவும்" />
             </SelectTrigger>
             <SelectContent>
@@ -96,12 +187,22 @@ export default function BasicDocumentForm({ data, updateData }) {
               ))}
             </SelectContent>
           </Select>
+          {touched.bookNumberId && <FormError message={errors.bookNumberId} />}
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="documentTypeId">ஆவண வகை</Label>
-          <Select value={formState.documentTypeId} onValueChange={(value) => handleChange("documentTypeId", value)}>
-            <SelectTrigger>
+          <Label
+            htmlFor="documentTypeId"
+            className={errors.documentTypeId && touched.documentTypeId ? "text-red-500" : ""}
+          >
+            ஆவண வகை <span className="text-red-500">*</span>
+          </Label>
+          <Select
+            value={formState.documentTypeId || ""}
+            onValueChange={(value) => handleChange("documentTypeId", value)}
+            onOpenChange={() => handleBlur("documentTypeId")}
+          >
+            <SelectTrigger className={errors.documentTypeId && touched.documentTypeId ? "border-red-500" : ""}>
               <SelectValue placeholder="ஆவண வகை தேர்ந்தெடுக்கவும்" />
             </SelectTrigger>
             <SelectContent>
@@ -112,33 +213,61 @@ export default function BasicDocumentForm({ data, updateData }) {
               ))}
             </SelectContent>
           </Select>
+          {touched.documentTypeId && <FormError message={errors.documentTypeId} />}
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="registrationDate">பதிவு தேதி</Label>
+          <Label
+            htmlFor="registrationDate"
+            className={errors.registrationDate && touched.registrationDate ? "text-red-500" : ""}
+          >
+            பதிவு தேதி <span className="text-red-500">*</span>
+          </Label>
           <Input
             id="registrationDate"
             type="date"
-            value={formState.registrationDate}
+            value={formState.registrationDate || ""}
             onChange={(e) => handleChange("registrationDate", e.target.value)}
+            onBlur={() => handleBlur("registrationDate")}
+            className={errors.registrationDate && touched.registrationDate ? "border-red-500" : ""}
+            max={new Date().toISOString().split("T")[0]} // இன்றைய தேதி வரை மட்டும்
             required
           />
+          {touched.registrationDate && <FormError message={errors.registrationDate} />}
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="submissionDate">சமர்ப்பிக்கப்பட்ட தேதி</Label>
+          <Label
+            htmlFor="submissionDate"
+            className={errors.submissionDate && touched.submissionDate ? "text-red-500" : ""}
+          >
+            சமர்ப்பிக்கப்பட்ட தேதி
+          </Label>
           <Input
             id="submissionDate"
             type="date"
-            value={formState.submissionDate}
+            value={formState.submissionDate || ""}
             onChange={(e) => handleChange("submissionDate", e.target.value)}
+            onBlur={() => handleBlur("submissionDate")}
+            className={errors.submissionDate && touched.submissionDate ? "border-red-500" : ""}
+            max={new Date().toISOString().split("T")[0]} // இன்றைய தேதி வரை மட்டும்
           />
+          {touched.submissionDate && <FormError message={errors.submissionDate} />}
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="submissionTypeId">சமர்ப்பிப்பு வகை</Label>
-          <Select value={formState.submissionTypeId} onValueChange={(value) => handleChange("submissionTypeId", value)}>
-            <SelectTrigger>
+          <Label
+            htmlFor="submissionTypeId"
+            className={errors.submissionTypeId && touched.submissionTypeId ? "text-red-500" : ""}
+          >
+            சமர்ப்பிப்பு வகை <span className="text-red-500">*</span>
+          </Label>
+          <Select
+            value={formState.submissionTypeId || ""}
+            onValueChange={(value) => handleChange("submissionTypeId", value)}
+            onOpenChange={() => handleBlur("submissionTypeId")}
+          >
+            <SelectTrigger className={errors.submissionTypeId && touched.submissionTypeId ? "border-red-500" : ""}>
               <SelectValue placeholder="சமர்ப்பிப்பு வகை தேர்ந்தெடுக்கவும்" />
             </SelectTrigger>
             <SelectContent>
@@ -149,12 +278,19 @@ export default function BasicDocumentForm({ data, updateData }) {
               ))}
             </SelectContent>
           </Select>
+          {touched.submissionTypeId && <FormError message={errors.submissionTypeId} />}
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="officeId">அலுவலகம்</Label>
-          <Select value={formState.officeId} onValueChange={(value) => handleChange("officeId", value)}>
-            <SelectTrigger>
+          <Label htmlFor="officeId" className={errors.officeId && touched.officeId ? "text-red-500" : ""}>
+            அலுவலகம் <span className="text-red-500">*</span>
+          </Label>
+          <Select
+            value={formState.officeId || ""}
+            onValueChange={(value) => handleChange("officeId", value)}
+            onOpenChange={() => handleBlur("officeId")}
+          >
+            <SelectTrigger className={errors.officeId && touched.officeId ? "border-red-500" : ""}>
               <SelectValue placeholder="அலுவலகம் தேர்ந்தெடுக்கவும்" />
             </SelectTrigger>
             <SelectContent>
@@ -165,15 +301,24 @@ export default function BasicDocumentForm({ data, updateData }) {
               ))}
             </SelectContent>
           </Select>
+          {touched.officeId && <FormError message={errors.officeId} />}
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="subRegistrarOfficeId">துணை பதிவாளர் அலுவலகம்</Label>
-          <Select
-            value={formState.subRegistrarOfficeId}
-            onValueChange={(value) => handleChange("subRegistrarOfficeId", value)}
+          <Label
+            htmlFor="subRegistrarOfficeId"
+            className={errors.subRegistrarOfficeId && touched.subRegistrarOfficeId ? "text-red-500" : ""}
           >
-            <SelectTrigger>
+            துணை பதிவாளர் அலுவலகம் <span className="text-red-500">*</span>
+          </Label>
+          <Select
+            value={formState.subRegistrarOfficeId || ""}
+            onValueChange={(value) => handleChange("subRegistrarOfficeId", value)}
+            onOpenChange={() => handleBlur("subRegistrarOfficeId")}
+          >
+            <SelectTrigger
+              className={errors.subRegistrarOfficeId && touched.subRegistrarOfficeId ? "border-red-500" : ""}
+            >
               <SelectValue placeholder="துணை பதிவாளர் அலுவலகம் தேர்ந்தெடுக்கவும்" />
             </SelectTrigger>
             <SelectContent>
@@ -184,12 +329,22 @@ export default function BasicDocumentForm({ data, updateData }) {
               ))}
             </SelectContent>
           </Select>
+          {touched.subRegistrarOfficeId && <FormError message={errors.subRegistrarOfficeId} />}
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="documentStatus">ஆவண நிலை</Label>
-          <Select value={formState.documentStatus} onValueChange={(value) => handleChange("documentStatus", value)}>
-            <SelectTrigger>
+          <Label
+            htmlFor="documentStatus"
+            className={errors.documentStatus && touched.documentStatus ? "text-red-500" : ""}
+          >
+            ஆவண நிலை <span className="text-red-500">*</span>
+          </Label>
+          <Select
+            value={formState.documentStatus || ""}
+            onValueChange={(value) => handleChange("documentStatus", value)}
+            onOpenChange={() => handleBlur("documentStatus")}
+          >
+            <SelectTrigger className={errors.documentStatus && touched.documentStatus ? "border-red-500" : ""}>
               <SelectValue placeholder="ஆவண நிலை தேர்ந்தெடுக்கவும்" />
             </SelectTrigger>
             <SelectContent>
@@ -199,6 +354,7 @@ export default function BasicDocumentForm({ data, updateData }) {
               <SelectItem value="cancelled">ரத்து செய்யப்பட்டது</SelectItem>
             </SelectContent>
           </Select>
+          {touched.documentStatus && <FormError message={errors.documentStatus} />}
         </div>
       </div>
 
@@ -206,10 +362,14 @@ export default function BasicDocumentForm({ data, updateData }) {
         <Label htmlFor="remarks">குறிப்புகள்</Label>
         <Textarea
           id="remarks"
-          value={formState.remarks}
+          value={formState.remarks || ""}
           onChange={(e) => handleChange("remarks", e.target.value)}
           rows={3}
         />
+      </div>
+
+      <div className="mt-4 text-sm text-gray-500">
+        <span className="text-red-500">*</span> குறிக்கப்பட்ட புலங்கள் கட்டாயமாக நிரப்பப்பட வேண்டும்
       </div>
 
       <Button type="submit" className="mt-4 bg-cyan-600 hover:bg-cyan-700 text-white">
