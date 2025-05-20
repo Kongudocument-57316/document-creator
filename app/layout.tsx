@@ -1,27 +1,20 @@
-import type React from "react"
-import { ThemeProvider } from "@/components/theme-provider"
-import "./globals.css"
+import type { Metadata } from 'next'
+import './globals.css'
+
+export const metadata: Metadata = {
+  title: 'v0 App',
+  description: 'Created with v0',
+  generator: 'v0.dev',
+}
 
 export default function RootLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode
-}) {
+}>) {
   return (
-    <html lang="ta" suppressHydrationWarning>
-      <head>
-        <title>தமிழ் ஆவண எழுத்தர் மேலாண்மை மென்பொருள்</title>
-        <meta name="description" content="தமிழ் ஆவண எழுத்தர் மேலாண்மை மென்பொருள்" />
-      </head>
-      <body>
-        <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
-          {children}
-        </ThemeProvider>
-      </body>
+    <html lang="en">
+      <body>{children}</body>
     </html>
   )
 }
-
-export const metadata = {
-      generator: 'v0.dev'
-    };
