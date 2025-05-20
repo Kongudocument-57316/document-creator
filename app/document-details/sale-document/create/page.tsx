@@ -14,6 +14,9 @@ import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { toast } from "@/components/ui/use-toast"
 
+// Import the relation type utility
+import { getRelationTypeText } from "@/utils/relation-types"
+
 // Create Supabase client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ""
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
@@ -83,6 +86,24 @@ export default function CreateSaleDocument() {
 
   // Handle selecting a user from search results
   const handleSelectUser = (user) => {
+    // Format date of birth if it exists
+    let formattedDob = ""
+    let calculatedAge = ""
+
+    if (user.date_of_birth) {
+      formattedDob = new Date(user.date_of_birth).toISOString().split("T")[0]
+
+      // Calculate age
+      const dob = new Date(user.date_of_birth)
+      const today = new Date()
+      let age = today.getFullYear() - dob.getFullYear()
+      const monthDiff = today.getMonth() - dob.getMonth()
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+        age--
+      }
+      calculatedAge = age.toString()
+    }
+
     setSelectedBuyer(user)
     setBuyerForm({
       name: user.name || "",
@@ -99,8 +120,8 @@ export default function CreateSaleDocument() {
       aadhaar_number: user.aadhaar_number || "",
       pan_number: user.pan_number || "",
       pincode: user.pincode || "",
-      date_of_birth: user.date_of_birth ? new Date(user.date_of_birth).toISOString().split("T")[0] : "",
-      age: user.age?.toString() || "",
+      date_of_birth: formattedDob,
+      age: calculatedAge || user.age?.toString() || "",
     })
     setSearchQuery("")
     setSearchResults([])
@@ -113,6 +134,23 @@ export default function CreateSaleDocument() {
       ...prev,
       [name]: value,
     }))
+  }
+
+  // Add this function after the handleBuyerFormChange function
+  const handleDateOfBirthChange = (e) => {
+    const dob = new Date(e.target.value)
+    const today = new Date()
+    let age = today.getFullYear() - dob.getFullYear()
+    const monthDiff = today.getMonth() - dob.getMonth()
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+      age--
+    }
+
+    setBuyerForm({
+      ...buyerForm,
+      date_of_birth: e.target.value,
+      age: age.toString(),
+    })
   }
 
   // Add buyer to the list
@@ -246,6 +284,8 @@ export default function CreateSaleDocument() {
                         <div>
                           <p className="font-medium">{buyer.name}</p>
                           <div className="text-sm text-gray-500">
+                            {buyer.relation_type &&
+                              `${getRelationTypeText(buyer.relation_type)} ${buyer.relative_name ? "of " + buyer.relative_name : ""} | `}
                             {buyer.phone && `📞 ${buyer.phone}`}
                             {buyer.aadhaar_number && ` | 🆔 ${buyer.aadhaar_number}`}
                           </div>
@@ -346,21 +386,14 @@ export default function CreateSaleDocument() {
                     name="date_of_birth"
                     type="date"
                     value={buyerForm.date_of_birth}
-                    onChange={handleBuyerFormChange}
+                    onChange={handleDateOfBirthChange}
                     className="bg-white"
                   />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="age">வயது</Label>
-                  <Input
-                    id="age"
-                    name="age"
-                    value={buyerForm.age}
-                    onChange={handleBuyerFormChange}
-                    className="bg-white"
-                    readOnly
-                  />
+                  <Input id="age" name="age" value={buyerForm.age} className="bg-white" readOnly />
                 </div>
 
                 <div className="space-y-2">
